@@ -3,7 +3,7 @@ import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/pris
 import mermaid from "react-syntax-highlighter/dist/esm/languages/prism/mermaid";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 import { DbmlDiagram, MermaidDiagram } from "@/components/editor/DiagramBlocks";
 
 const dbml = (Prism: any) => {
@@ -49,27 +49,25 @@ const normalizeLanguage = (language?: string) => {
   return normalized;
 };
 
-export const CodeBlock = ({ language, children }: CodeBlockProps) => {
+const getIsDarkTheme = () => {
+  if (typeof document === "undefined") return false;
+  const root = document.documentElement;
+  const bgColor = getComputedStyle(root).getPropertyValue("--background").trim();
+  const match = bgColor.match(/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/);
+  if (match) return parseFloat(match[3]) < 50;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+};
+
+export const CodeBlock = memo(({ language, children }: CodeBlockProps) => {
   const [copied, setCopied] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(getIsDarkTheme);
   const normalizedLanguage = normalizeLanguage(language);
   const isMermaid = normalizedLanguage === "mermaid";
   const isDbml = normalizedLanguage === "dbml";
 
   useEffect(() => {
-    // Check if document has a dark theme or use prefers-color-scheme
     const checkDarkMode = () => {
-      const root = document.documentElement;
-      const bgColor = getComputedStyle(root).getPropertyValue('--background').trim();
-      // If background HSL lightness is low, it's dark
-      const match = bgColor.match(/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%/);
-      if (match) {
-        const lightness = parseFloat(match[3]);
-        setIsDark(lightness < 50);
-      } else {
-        // Fallback to system preference
-        setIsDark(window.matchMedia('(prefers-color-scheme: dark)').matches);
-      }
+      setIsDark(getIsDarkTheme());
     };
     
     checkDarkMode();
@@ -88,7 +86,7 @@ export const CodeBlock = ({ language, children }: CodeBlockProps) => {
   };
 
   return (
-    <div className="relative group rounded-lg overflow-hidden my-3">
+    <div className="relative group rounded-lg my-3">
       <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-3 py-1.5 bg-muted/80 border-b border-border text-xs z-10">
         <span className="text-muted-foreground font-mono">
           {normalizedLanguage || "text"}
@@ -133,7 +131,7 @@ export const CodeBlock = ({ language, children }: CodeBlockProps) => {
       )}
     </div>
   );
-};
+});
 
 // Inline code component
 export const InlineCode = ({ children }: { children: React.ReactNode }) => {

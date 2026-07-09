@@ -1,4 +1,6 @@
 import { getNoteFolderId, getNoteId, type LinkableNote } from "@/lib/note-links";
+import { getApiBaseUrl } from "@/lib/api";
+import type { AnnotationDocument } from "@/components/editor/useAnnotations";
 
 export interface ExportFolder {
   _id?: string;
@@ -16,8 +18,8 @@ const safeName = (value: string) =>
 
 const noteFileName = (note: LinkableNote) => `${safeName(note.title)}.md`;
 
-const downloadFile = (name: string, content: string) => {
-  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+const downloadFile = (name: string, content: string, type = "text/markdown;charset=utf-8") => {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -26,6 +28,27 @@ const downloadFile = (name: string, content: string) => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+const sidecarFileName = (note: LinkableNote) => noteFileName(note).replace(/\.md$/i, ".annotations.json");
+
+const fetchAnnotationDocument = async (note: LinkableNote): Promise<AnnotationDocument | null> => {
+  const id = getNoteId(note);
+  if (!id) return null;
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/annotations/${id}`);
+    if (!response.ok) return null;
+    const doc = await response.json();
+    if (!doc?.annotations?.length) return null;
+    return {
+      version: doc.version || 2,
+      noteId: String(id),
+      canvas: doc.canvas,
+      annotations: doc.annotations,
+    };
+  } catch {
+    return null;
+  }
 };
 
 export const exportMarkdownVault = async (notes: LinkableNote[], folders: ExportFolder[]) => {
@@ -48,20 +71,45 @@ export const exportMarkdownVault = async (notes: LinkableNote[], folders: Export
       const writable = await file.createWritable();
       await writable.write(note.content || "");
       await writable.close();
+
+      const annotations = await fetchAnnotationDocument(note);
+      if (annotations) {
+        const sidecar = await dir.getFileHandle(fileName.replace(/\.md$/i, ".annotations.json"), { create: true });
+        const sidecarWritable = await sidecar.createWritable();
+        await sidecarWritable.write(JSON.stringify(annotations, null, 2));
+        await sidecarWritable.close();
+      }
     }
     return { mode: "directory" as const, count: notes.length };
   }
 
-  notes.forEach((note) => {
+  for (const note of notes) {
     const folder = folderById.get(getNoteFolderId(note) || "");
     const prefix = folder ? `${safeName(folder.name)} - ` : "";
     downloadFile(`${prefix}${noteFileName(note)}`, note.content || "");
-  });
+    const annotations = await fetchAnnotationDocument(note);
+    if (annotations) {
+      downloadFile(
+        `${prefix}${sidecarFileName(note)}`,
+        JSON.stringify(annotations, null, 2),
+        "application/json;charset=utf-8"
+      );
+    }
+  }
   return { mode: "downloads" as const, count: notes.length };
 };
 
 export const readMarkdownImportFiles = async (files: FileList | File[]) => {
-  const markdownFiles = Array.from(files).filter((file) => /\.md$/i.test(file.name));
+  const allFiles = Array.from(files);
+  const sidecars = new Map<string, File>();
+  allFiles
+    .filter((file) => /\.annotations\.json$/i.test(file.name))
+    .forEach((file) => {
+      const relativePath = (file as any).webkitRelativePath || file.name;
+      sidecars.set(relativePath.replace(/\.annotations\.json$/i, ".md"), file);
+    });
+
+  const markdownFiles = allFiles.filter((file) => /\.md$/i.test(file.name));
   return Promise.all(
     markdownFiles.map(async (file) => {
       const content = await file.text();
@@ -69,10 +117,20 @@ export const readMarkdownImportFiles = async (files: FileList | File[]) => {
       const parts = relativePath.split("/").filter(Boolean);
       const fileName = parts.pop() || file.name;
       const folderName = parts.length ? parts[parts.length - 1] : "Imported";
+      const sidecar = sidecars.get(relativePath);
+      let annotations: AnnotationDocument | null = null;
+      if (sidecar) {
+        try {
+          annotations = JSON.parse(await sidecar.text()) as AnnotationDocument;
+        } catch {
+          annotations = null;
+        }
+      }
       return {
         title: fileName.replace(/\.md$/i, "") || "Untitled",
         content,
         folderName,
+        annotations,
       };
     })
   );

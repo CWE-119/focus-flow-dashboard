@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { NotesProvider, useNotes } from "@/contexts/NotesContext";
-import { useNoteTimer } from "@/contexts/NoteTimerContext";
+import { useNoteTimerActions } from "@/contexts/NoteTimerContext";
 import FoldersSidebar from "@/components/FoldersSidebar";
 import NotesList from "@/components/NotesList";
 import MarkdownEditor from "@/components/MarkdownEditor";
@@ -59,7 +59,7 @@ const NotesContent = () => {
     selectNote,
     refreshNotes
   } = useNotes();
-  const { toggleTimer, resetTimer, saveSession } = useNoteTimer();
+  const { toggleTimer, resetTimer, saveSession } = useNoteTimerActions();
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isFoldersCollapsed, setIsFoldersCollapsed] = useState(false);
   const [isNotesListCollapsed, setIsNotesListCollapsed] = useState(false);
@@ -176,7 +176,20 @@ const NotesContent = () => {
         const folderId = folderIds.get(item.folderName)!;
         const title = uniqueImportTitle(item.title, existingNotes);
         const note = await createNoteInFolder(folderId, title, item.content);
-        if (note) existingNotes.push(note);
+        if (note) {
+          existingNotes.push(note);
+          if (item.annotations?.annotations?.length) {
+            const noteId = getNoteId(note);
+            await fetch(`${getApiBaseUrl()}/annotations/${noteId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...item.annotations,
+                noteId,
+              }),
+            });
+          }
+        }
       }
 
       await refreshNotes();

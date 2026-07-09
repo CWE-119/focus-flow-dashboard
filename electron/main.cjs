@@ -75,6 +75,7 @@ function startBackend() {
       const userDataDir = app.getPath('userData');
       const dbPath = path.join(userDataDir, 'focusflow.db');
       backendEnv.FOCUSFLOW_DB_PATH = dbPath;
+      backendEnv.PORT = String(API_PORT);
       console.log('📁 Using DB path for backend:', dbPath);
     } catch (e) {
       console.warn('⚠ Could not determine userData path for DB:', e && e.message);

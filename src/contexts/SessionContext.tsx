@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, useEffect, ReactNode } from "react";
 import { formatLocalDateKey, historyAPI } from "@/lib/api";
 
 export interface Session {
@@ -39,7 +39,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
   }, [sessions]);
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       setIsLoading(true);
       const result = await historyAPI.getActivity();
@@ -77,9 +77,9 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const addSession = (durationSeconds: number, startTime: string, endTime: string) => {
+  const addSession = useCallback((durationSeconds: number, startTime: string, endTime: string) => {
     const dateKey = formatLocalDateKey();
     
     const durationMinutes = Math.round(durationSeconds / 60);
@@ -101,7 +101,7 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       }
       return [...prev, { date: dateKey, sessions: [newSession] }];
     });
-  };
+  }, []);
 
   const getSessionsForDate = (date: Date): Session[] => {
     const dateKey = formatLocalDateKey(date);

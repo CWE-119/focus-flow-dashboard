@@ -149,6 +149,7 @@ export const historyAPI = {
         startTime: sessionData?.startTime,
         endTime: sessionData?.endTime,
         date: sessionData?.date || formatLocalDateKey(),
+        metadata: sessionData,
       }),
     }),
 };

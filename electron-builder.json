@@ -56,6 +56,6 @@
       "AppImage",
       "deb"
     ],
-    "icon": "public/FucosFlow.ico"
+    "icon": "FucosFlow.png"
   }
 }

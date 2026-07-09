@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 
 interface MermaidDiagramProps {
   code: string;
@@ -25,10 +25,22 @@ interface DbmlRef {
 
 const normalizeId = (value: string) => value.replace(/^"|"$/g, "").trim();
 
-export const MermaidDiagram = ({ code, isDark }: MermaidDiagramProps) => {
+const hashString = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = Math.imul(31, hash) + value.charCodeAt(i);
+  }
+  return Math.abs(hash).toString(36);
+};
+
+const mermaidSvgCache = new Map<string, string>();
+const MERMAID_RENDER_VERSION = "v2";
+
+const MermaidDiagramComponent = ({ code, isDark }: MermaidDiagramProps) => {
   const reactId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [svg, setSvg] = useState("");
+  const cacheKey = `${MERMAID_RENDER_VERSION}:${isDark ? "dark" : "light"}:${code}`;
+  const [svg, setSvg] = useState(() => mermaidSvgCache.get(cacheKey) || "");
   const [error, setError] = useState<string | null>(null);
   const [shouldRender, setShouldRender] = useState(false);
 
@@ -50,6 +62,14 @@ export const MermaidDiagram = ({ code, isDark }: MermaidDiagramProps) => {
   }, []);
 
   useEffect(() => {
+    const cachedSvg = mermaidSvgCache.get(cacheKey);
+    if (cachedSvg) {
+      setSvg(cachedSvg);
+      setError(null);
+      return;
+    }
+
+    setSvg("");
     if (!shouldRender) return;
     let cancelled = false;
 
@@ -62,11 +82,17 @@ export const MermaidDiagram = ({ code, isDark }: MermaidDiagramProps) => {
           theme: isDark ? "dark" : "default",
           securityLevel: "strict",
           fontFamily: "inherit",
+          flowchart: {
+            htmlLabels: false,
+          },
         });
 
-        const id = `mermaid-${reactId.replace(/:/g, "")}`;
+        const id = `mermaid-${reactId.replace(/:/g, "")}-${hashString(cacheKey)}`;
         const result = await mermaid.render(id, code);
-        if (!cancelled) setSvg(result.svg);
+        if (!cancelled) {
+          mermaidSvgCache.set(cacheKey, result.svg);
+          setSvg(result.svg);
+        }
       } catch (err) {
         if (!cancelled) {
           setSvg("");
@@ -90,13 +116,22 @@ export const MermaidDiagram = ({ code, isDark }: MermaidDiagramProps) => {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="overflow-auto rounded-md bg-background p-4 [&_svg]:mx-auto [&_svg]:max-w-full"
-      dangerouslySetInnerHTML={{ __html: svg || (shouldRender ? "" : "<div class=\"text-sm text-muted-foreground\">Diagram will render when visible.</div>") }}
-    />
+    <div ref={containerRef} className="relative min-h-36 overflow-auto rounded-md bg-background p-4">
+      {svg ? (
+        <div
+          className="[&_foreignObject]:overflow-visible [&_svg]:mx-auto [&_svg]:max-w-[calc(100%-0.5rem)] [&_svg]:overflow-visible [&_svg_text]:paint-order-stroke [&_svg_text]:[text-rendering:geometricPrecision] [&_svg_*]:animate-none [&_svg_*]:transition-none"
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+      ) : (
+        <div className="flex min-h-28 items-center justify-center text-sm text-muted-foreground">
+          {shouldRender ? "Rendering diagram..." : "Diagram will render when visible."}
+        </div>
+      )}
+    </div>
   );
 };
+
+export const MermaidDiagram = memo(MermaidDiagramComponent);
 
 const parseDbml = (code: string) => {
   const tables: DbmlTable[] = [];
@@ -153,7 +188,7 @@ const parseDbml = (code: string) => {
   return { tables, refs };
 };
 
-export const DbmlDiagram = ({ code }: { code: string }) => {
+const DbmlDiagramComponent = ({ code }: { code: string }) => {
   const graph = useMemo(() => parseDbml(code), [code]);
   const tableWidth = 260;
   const gapX = 80;
@@ -246,3 +281,5 @@ export const DbmlDiagram = ({ code }: { code: string }) => {
     </div>
   );
 };
+
+export const DbmlDiagram = memo(DbmlDiagramComponent);

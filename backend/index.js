@@ -233,70 +233,72 @@ const db = new sqlite3.Database(dbPath, (err) => {
           if (err2) console.warn('⚠ Could not ensure reminders.dueDate:', err2.message);
           else if (added2) console.log('✓ Added missing column reminders.dueDate');
 
-          // Ensure additional history columns used for focus sessions
-          ensureColumn('history', 'date TEXT', 'date', (err3, added3) => {
-            if (err3) console.warn('⚠ Could not ensure history.date:', err3.message);
-            else if (added3) console.log('✓ Added missing column history.date');
-
-            ensureColumn('history', 'duration INTEGER', 'duration', (err4, added4) => {
-              if (err4) console.warn('⚠ Could not ensure history.duration:', err4.message);
-              else if (added4) console.log('✓ Added missing column history.duration');
-
-              ensureColumn('history', 'startTime TEXT', 'startTime', (err5, added5) => {
-                if (err5) console.warn('⚠ Could not ensure history.startTime:', err5.message);
-                else if (added5) console.log('✓ Added missing column history.startTime');
-
-                ensureColumn('history', 'endTime TEXT', 'endTime', (err6, added6) => {
-                  if (err6) console.warn('⚠ Could not ensure history.endTime:', err6.message);
-                  else if (added6) console.log('✓ Added missing column history.endTime');
-
-                  const noteColumns = [
-                    ['revision INTEGER DEFAULT 1', 'revision'],
-                    ['pinned INTEGER DEFAULT 0', 'pinned'],
-                    ['lastViewedAt DATETIME', 'lastViewedAt'],
-                  ];
-                  let noteIdx = 0;
-                  function ensureNextNoteCol(done) {
-                    if (noteIdx >= noteColumns.length) {
-                      done();
-                      return;
-                    }
-                    const [colDef, colName] = noteColumns[noteIdx++];
-                    ensureColumn('notes', colDef, colName, (err, added) => {
-                      if (err) console.warn(`⚠ Could not ensure notes.${colName}:`, err.message);
-                      else if (added) console.log(`✓ Added missing column notes.${colName}`);
-                      ensureNextNoteCol(done);
-                    });
-                  }
-
-                  // Ensure todos repeat/dueDate fields
-                  const todoColumns = [
-                    ['dueDate TEXT', 'dueDate'],
-                    ['repeatType TEXT', 'repeatType'],
-                    ['repeatInterval INTEGER', 'repeatInterval'],
-                    ['repeatDays TEXT', 'repeatDays'],
-                    ['repeatLimit INTEGER', 'repeatLimit'],
-                    ['repeatCount INTEGER', 'repeatCount'],
-                    ['repeatEndDate TEXT', 'repeatEndDate'],
-                  ];
-                  let idx = 0;
-                  function ensureNextTodoCol() {
-                    if (idx >= todoColumns.length) {
-                      ensureNextNoteCol(finishStartup);
-                      return;
-                    }
-                    const [colDef, colName] = todoColumns[idx++];
-                    ensureColumn('todos', colDef, colName, (err, added) => {
-                      if (err) console.warn(`⚠ Could not ensure todos.${colName}:`, err.message);
-                      else if (added) console.log(`✓ Added missing column todos.${colName}`);
-                      ensureNextTodoCol();
-                    });
-                  }
-                  ensureNextTodoCol();
-                });
-              });
+          const historyColumns = [
+            ['action TEXT', 'action'],
+            ['data TEXT', 'data'],
+            ['date TEXT', 'date'],
+            ['duration INTEGER', 'duration'],
+            ['startTime TEXT', 'startTime'],
+            ['endTime TEXT', 'endTime'],
+          ];
+          let historyIdx = 0;
+          function ensureNextHistoryCol(done) {
+            if (historyIdx >= historyColumns.length) {
+              done();
+              return;
+            }
+            const [colDef, colName] = historyColumns[historyIdx++];
+            ensureColumn('history', colDef, colName, (err, added) => {
+              if (err) console.warn(`⚠ Could not ensure history.${colName}:`, err.message);
+              else if (added) console.log(`✓ Added missing column history.${colName}`);
+              ensureNextHistoryCol(done);
             });
-          });
+          }
+
+          const noteColumns = [
+            ['revision INTEGER DEFAULT 1', 'revision'],
+            ['pinned INTEGER DEFAULT 0', 'pinned'],
+            ['lastViewedAt DATETIME', 'lastViewedAt'],
+          ];
+          let noteIdx = 0;
+          function ensureNextNoteCol(done) {
+            if (noteIdx >= noteColumns.length) {
+              done();
+              return;
+            }
+            const [colDef, colName] = noteColumns[noteIdx++];
+            ensureColumn('notes', colDef, colName, (err, added) => {
+              if (err) console.warn(`⚠ Could not ensure notes.${colName}:`, err.message);
+              else if (added) console.log(`✓ Added missing column notes.${colName}`);
+              ensureNextNoteCol(done);
+            });
+          }
+
+          // Ensure todos repeat/dueDate fields
+          const todoColumns = [
+            ['dueDate TEXT', 'dueDate'],
+            ['repeatType TEXT', 'repeatType'],
+            ['repeatInterval INTEGER', 'repeatInterval'],
+            ['repeatDays TEXT', 'repeatDays'],
+            ['repeatLimit INTEGER', 'repeatLimit'],
+            ['repeatCount INTEGER', 'repeatCount'],
+            ['repeatEndDate TEXT', 'repeatEndDate'],
+          ];
+          let idx = 0;
+          function ensureNextTodoCol() {
+            if (idx >= todoColumns.length) {
+              ensureNextNoteCol(finishStartup);
+              return;
+            }
+            const [colDef, colName] = todoColumns[idx++];
+            ensureColumn('todos', colDef, colName, (err, added) => {
+              if (err) console.warn(`⚠ Could not ensure todos.${colName}:`, err.message);
+              else if (added) console.log(`✓ Added missing column todos.${colName}`);
+              ensureNextTodoCol();
+            });
+          }
+
+          ensureNextHistoryCol(ensureNextTodoCol);
         });
       });
     });
@@ -925,9 +927,9 @@ app.get('/api/history', (req, res) => {
 
 app.get('/api/history/activity', (req, res) => {
   const sql = `
-    SELECT date, startTime, endTime, duration
+    SELECT date, startTime, endTime, duration, action
     FROM history
-    WHERE action = 'focus_session' AND date IS NOT NULL
+    WHERE action IN ('focus_session', 'note_session') AND date IS NOT NULL
     ORDER BY date DESC, createdAt DESC
   `;
 
@@ -942,6 +944,7 @@ app.get('/api/history/activity', (req, res) => {
       start: row.startTime || '00:00',
       end: row.endTime || '00:00',
       duration: row.duration || 0,
+      action: row.action,
     })));
   });
 });
@@ -969,6 +972,7 @@ app.post('/api/history', (req, res) => {
     duration,
     startTime,
     endTime,
+    metadata: req.body.metadata || null,
   });
 
   const sql = `
@@ -978,7 +982,7 @@ app.post('/api/history', (req, res) => {
 
   db.run(
     sql,
-    [action, dataPayload, dateKey, duration || 0, startTime || null, endTime || null],
+    [action || 'activity', dataPayload, dateKey, Number(duration) || 0, startTime || null, endTime || null],
     function(err) {
       if (err) {
         console.error('Error creating history entry:', err);
@@ -1281,12 +1285,20 @@ function startServer() {
   server = app.listen(PORT, () => {
     console.log(`✓ Server running on http://localhost:${PORT}`);
   });
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`✗ Port ${PORT} is already in use. Stop the existing backend or set PORT to another value.`);
+      process.exit(1);
+    }
+    console.error('✗ Server failed to start:', err);
+    process.exit(1);
+  });
 }
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n✓ Shutting down gracefully...');
   db.close();
-  server.close();
+  if (server) server.close();
   process.exit(0);
 });

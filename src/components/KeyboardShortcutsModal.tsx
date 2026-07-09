@@ -19,6 +19,12 @@ const shortcuts = [
   { keys: ["Space"], action: "Start/Pause Timer (Notes)" },
   { keys: ["Ctrl", "Shift", "S"], action: "Save Timer Session" },
   { keys: ["Ctrl", "R"], action: "Reset Timer" },
+  { keys: ["P", "H", "E"], action: "Annotation pen/highlighter/eraser" },
+  { keys: ["V"], action: "Annotation select tool" },
+  { keys: ["Delete"], action: "Delete selected annotation" },
+  { keys: ["Ctrl", "L"], action: "Lock selected annotation" },
+  { keys: ["Ctrl", "Z"], action: "Undo annotation change" },
+  { keys: ["Ctrl", "Y"], action: "Redo annotation change" },
   { keys: ["Esc"], action: "Close Dialogs" },
 ];
 

@@ -28,6 +28,7 @@ import {
   Image,
   Video,
   Eye,
+  EyeOff,
   Edit,
   Check,
   Grid3X3,
@@ -58,6 +59,9 @@ import {
   Database,
   Pin,
   PinOff,
+  Lock,
+  Unlock,
+  Layers,
 } from "lucide-react";
 import {
   Dialog,
@@ -137,7 +141,7 @@ const ANNOTATION_TOOLS: { id: AnnotationTool; icon: typeof Pen; label: string; s
   { id: 'rect', icon: Square, label: 'Rectangle', shortcut: 'R' },
   { id: 'circle', icon: Circle, label: 'Circle', shortcut: 'C' },
   { id: 'text', icon: Type, label: 'Text', shortcut: 'T' },
-  { id: 'pan', icon: Hand, label: 'Pan', shortcut: 'V' },
+  { id: 'pan', icon: Hand, label: 'Select', shortcut: 'V' },
 ];
 
 const ANNOTATION_COLORS = [
@@ -288,13 +292,22 @@ const MarkdownEditor = ({
         p: 'pen', h: 'highlighter', e: 'eraser', l: 'line',
         r: 'rect', c: 'circle', t: 'text', v: 'pan',
       };
-      if (!ctrl && keyMap[k]) { ann.setTool(keyMap[k]); return; }
+      if (!ctrl && keyMap[k]) {
+        e.preventDefault();
+        ann.setTool(keyMap[k]);
+        return;
+      }
 
       if (ctrl && k === 'z' && !e.shiftKey) { e.preventDefault(); ann.undo(); }
       if (ctrl && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); ann.redo(); }
+      if (ctrl && k === 'l' && ann.selectedAnnotationId) {
+        e.preventDefault();
+        ann.toggleSelectedLocked();
+      }
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (ann.selectedAnnotationId) {
+        if (ann.selectedAnnotationId && !ann.selectedAnnotation?.locked && !ann.annotationsLocked) {
+          e.preventDefault();
           ann.deleteAnnotation(ann.selectedAnnotationId);
           ann.setSelectedAnnotationId(null);
         }
@@ -451,6 +464,10 @@ const MarkdownEditor = ({
     }
     setAnnotationMode(prev => !prev);
   }, [isPreview]);
+
+  const selectedAnnotationLocked = Boolean(ann.selectedAnnotation?.locked || ann.annotationsLocked);
+  const selectedAnnotationHidden = ann.selectedAnnotation?.visible === false;
+  const visibleAnnotationCount = ann.annotations.filter((item) => item.visible !== false).length;
 
   return (
     <div className={cn("flex flex-col h-full", focusMode && "fixed inset-0 z-50 bg-background p-6 pt-10")}>
@@ -765,6 +782,19 @@ const MarkdownEditor = ({
       {/* Toolbar Row 2 — Annotation tools (shown when annotation mode is active) */}
       {annotationMode && (
         <div className="flex items-center gap-1 p-2 border border-t-0 border-border bg-muted/30 flex-wrap">
+          <div className="mr-2 flex min-w-[170px] items-center gap-2 rounded border border-border bg-background px-2 py-1">
+            <span className={cn(
+              "h-2 w-2 rounded-full",
+              ann.annotationsLocked ? "bg-muted-foreground" : ann.tool === "eraser" ? "bg-destructive" : ann.tool === "pan" ? "bg-primary" : "bg-green-500"
+            )} />
+            <span className="text-xs font-medium">
+              {ann.annotationsLocked ? "Locked" : ANNOTATION_TOOLS.find((tool) => tool.id === ann.tool)?.label || "Annotating"}
+            </span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {visibleAnnotationCount}/{ann.annotations.length}
+            </span>
+          </div>
+
           {/* Tools */}
           {ANNOTATION_TOOLS.map(({ id, icon: Icon, label, shortcut }) => (
             <Button
@@ -778,6 +808,67 @@ const MarkdownEditor = ({
               <Icon className="w-4 h-4" />
             </Button>
           ))}
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          <Button
+            variant={ann.annotationsVisible ? "ghost" : "default"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => ann.setAnnotationsVisible(!ann.annotationsVisible)}
+            title={ann.annotationsVisible ? "Hide annotations" : "Show annotations"}
+          >
+            {ann.annotationsVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant={ann.annotationsLocked ? "default" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => ann.setAnnotationsLocked(!ann.annotationsLocked)}
+            title={ann.annotationsLocked ? "Unlock annotation layer" : "Lock annotation layer"}
+          >
+            {ann.annotationsLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant={selectedAnnotationLocked ? "default" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={ann.toggleSelectedLocked}
+            disabled={!ann.selectedAnnotationId || ann.annotationsLocked}
+            title={selectedAnnotationLocked ? "Unlock selected" : "Lock selected"}
+          >
+            {selectedAnnotationLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant={selectedAnnotationHidden ? "default" : "ghost"}
+            size="icon"
+            className="h-8 w-8"
+            onClick={ann.toggleSelectedVisible}
+            disabled={!ann.selectedAnnotationId}
+            title={selectedAnnotationHidden ? "Show selected" : "Hide selected"}
+          >
+            {selectedAnnotationHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={ann.bringSelectedForward}
+            disabled={!ann.selectedAnnotationId || ann.annotationsLocked}
+            title="Bring selected forward"
+          >
+            <Layers className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rotate-180"
+            onClick={ann.sendSelectedBackward}
+            disabled={!ann.selectedAnnotationId || ann.annotationsLocked}
+            title="Send selected backward"
+          >
+            <Layers className="w-4 h-4" />
+          </Button>
 
           <div className="w-px h-6 bg-border mx-1" />
 
@@ -849,8 +940,12 @@ const MarkdownEditor = ({
               if (trashHolding) {
                 setTrashHolding(false);
                 if (ann.selectedAnnotationId) {
-                  ann.deleteAnnotation(ann.selectedAnnotationId);
-                  ann.setSelectedAnnotationId(null);
+                  if (selectedAnnotationLocked) {
+                    toast.info('Unlock the selected annotation first');
+                  } else {
+                    ann.deleteAnnotation(ann.selectedAnnotationId);
+                    ann.setSelectedAnnotationId(null);
+                  }
                 }
               }
             }}
@@ -940,9 +1035,12 @@ const MarkdownEditor = ({
               color={ann.color}
               brushSize={ann.brushSize}
               active={annotationMode}
+              visible={ann.annotationsVisible}
+              locked={ann.annotationsLocked}
               contentRef={contentRef}
               selectedId={ann.selectedAnnotationId}
               onSelectionChange={ann.setSelectedAnnotationId}
+              onCanvasSizeChange={ann.updateCanvas}
             />
           </div>
         ) : (

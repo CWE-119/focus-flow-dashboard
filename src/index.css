@@ -408,12 +408,37 @@
 
   body {
     @apply bg-background text-foreground font-body;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 /* Markdown prose styling */
 .prose {
   @apply text-foreground;
+  overflow-wrap: anywhere;
+}
+
+.prose :where(p, li, blockquote, h1, h2, h3, h4, h5, h6) {
+  padding-right: 0.04em;
+}
+
+.prose :where(a, strong, em, code) {
+  padding-right: 0.04em;
+  text-decoration-skip-ink: auto;
+}
+
+.prose :where(section[data-footnotes]) {
+  @apply mt-4 border-0 pt-0 text-sm text-muted-foreground;
+}
+
+.prose :where(section[data-footnotes])::before {
+  display: none;
+}
+
+.prose :where(section[data-footnotes] h2) {
+  @apply sr-only;
 }
 
 .prose h1,
@@ -464,6 +489,7 @@
 
 .prose code {
   @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+  line-height: 1.6;
 }
 
 .prose pre {

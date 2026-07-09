@@ -5,9 +5,25 @@ import Notes from "@/pages/Notes";
 
 vi.mock("@/contexts/NoteTimerContext", () => ({
   useNoteTimer: () => ({
+    time: 0,
+    isRunning: false,
+    noteTitle: null,
     toggleTimer: vi.fn(),
     resetTimer: vi.fn(),
     saveSession: vi.fn(),
+    startTimer: vi.fn(),
+  }),
+  useNoteTimerState: () => ({
+    time: 0,
+    isRunning: false,
+    noteTitle: null,
+  }),
+  useNoteTimerActions: () => ({
+    toggleTimer: vi.fn(),
+    resetTimer: vi.fn(),
+    saveSession: vi.fn(),
+    startTimer: vi.fn(),
+    pauseTimer: vi.fn(),
   }),
 }));
 
