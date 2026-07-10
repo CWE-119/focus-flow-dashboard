@@ -66,6 +66,7 @@ const defaultFormData: TodoFormData = {
 };
 
 export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "create" }: TodoFormProps) => {
+  const { categories } = useCategories();
   const [title, setTitle] = useState(initialData?.title || "");
   const [repeatType, setRepeatType] = useState<TodoFormData["repeatType"]>(
     initialData?.repeatType || "none"
@@ -78,6 +79,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
   const [hasRepeatEndDate, setHasRepeatEndDate] = useState(!!initialData?.repeatEndDate);
   const [priority, setPriority] = useState<TodoFormData["priority"]>(initialData?.priority || "medium");
   const [dueDate, setDueDate] = useState<Date | null>(initialData?.dueDate || null);
+  const [categoryId, setCategoryId] = useState<string | null>(initialData?.categoryId ?? null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -92,6 +94,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
     setHasRepeatEndDate(!!data.repeatEndDate);
     setPriority(data.priority);
     setDueDate(data.dueDate);
+    setCategoryId(data.categoryId ?? null);
   }, [initialData, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -107,6 +110,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
       repeatEndDate: hasRepeatEndDate ? repeatEndDate : null,
       priority,
       dueDate,
+      categoryId,
     });
 
     if (mode === "create") {
@@ -120,6 +124,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
       setHasRepeatEndDate(false);
       setPriority("medium");
       setDueDate(null);
+      setCategoryId(null);
     }
     onOpenChange(false);
   };
