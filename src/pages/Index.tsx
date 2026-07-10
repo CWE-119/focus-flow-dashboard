@@ -29,7 +29,7 @@ const IndexContent = () => {
   return (
     <div className="min-h-screen bg-background pt-8 p-4 sm:p-8 md:p-12 lg:p-16">
       {/* Header */}
-      <header className="mb-8 md:mb-16">
+      <header className="mb-8 md:mb-12">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 
@@ -50,16 +50,16 @@ const IndexContent = () => {
       </header>
 
       {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-12">
-        {/* Left Column - Timer, Clock & Motivation */}
-        <div className="lg:col-span-5 space-y-4 sm:space-y-6 lg:space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6">
+        {/* Left Column - Timer, Clock & Visualizer */}
+        <div className="lg:col-span-5 space-y-4 sm:space-y-5 lg:space-y-6">
           <Timer />
           <Clock />
           <AudioVisualizer />
         </div>
 
         {/* Right Column - Todo, Reminders, Stats & Tips */}
-        <div className="lg:col-span-7 space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="lg:col-span-7 space-y-4 sm:space-y-5 lg:space-y-6">
           <TodoList />
           <RemindersList />
           <Stats />
@@ -68,7 +68,7 @@ const IndexContent = () => {
       </div>
 
       {/* Contribution Grid - Full Width */}
-      <div className="mt-6 sm:mt-8 lg:mt-12">
+      <div className="mt-5 sm:mt-6 lg:mt-8">
         <ContributionGrid />
       </div>
 
