@@ -200,7 +200,7 @@ const AudioVisualizer = () => {
   }, [stop]);
 
   return (
-    <div className="border border-border p-4 bg-card h-[185px] flex flex-col overflow-hidden">
+    <div className="border border-border rounded-md p-4 bg-card h-[185px] flex flex-col overflow-hidden">
       <div className="flex items-center justify-between mb-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Music className="h-4 w-4 text-primary shrink-0" />

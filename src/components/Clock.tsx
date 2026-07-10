@@ -25,7 +25,7 @@ const Clock = () => {
   };
 
   return (
-    <div className="border border-border p-6 bg-card">
+    <div className="border border-border rounded-md p-6 bg-card">
       <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
         Current Time
       </span>

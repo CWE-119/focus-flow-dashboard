@@ -23,7 +23,7 @@ const ActiveNoteSession = () => {
 
   return (
     <div className={cn(
-      "border border-border p-4 bg-card",
+      "border border-border rounded-md p-4 bg-card",
       isRunning && "border-primary/30 bg-primary/5"
     )}>
       <div className="flex items-center gap-2 mb-2">
@@ -129,14 +129,17 @@ const Stats = () => {
   return (
     <div className="space-y-4">
       <ActiveNoteSession />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="border border-border p-4 bg-card">
-            <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
+          <div
+            key={stat.label}
+            className="group border border-border rounded-md p-4 bg-card transition-all hover:border-foreground/40 hover:-translate-y-0.5"
+          >
+            <span className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
               {stat.label}
             </span>
             <div className="mt-2">
-              <span className="font-display text-3xl font-bold tracking-tight text-foreground">
+              <span className="font-display text-3xl font-bold tracking-tight text-foreground tabular-nums">
                 {stat.value}
               </span>
               <p className="font-body text-xs text-muted-foreground mt-1">

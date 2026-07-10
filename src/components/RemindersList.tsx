@@ -98,24 +98,24 @@ const RemindersList = () => {
   const completedCount = reminders.filter(r => r.completed).length;
 
   return (
-    <div className="border border-border p-6 bg-card">
-      <div className="flex items-center justify-between mb-6">
+    <div className="border border-border rounded-md p-6 bg-card">
+      <div className="flex items-center justify-between mb-4">
         <span className="font-body text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <Bell className="w-3 h-3" />
           Reminders
         </span>
-        <span className="font-body text-xs text-muted-foreground">
+        <span className="font-body text-xs text-muted-foreground tabular-nums">
           {completedCount}/{reminders.length}
         </span>
       </div>
 
-      <div className="space-y-3 mb-6 max-h-[200px] overflow-y-auto">
+      <div className="space-y-3 mb-5 max-h-[240px] overflow-y-auto">
         <AnimatePresence mode="popLayout">
           {displayedReminders.length === 0 ? (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-sm text-muted-foreground text-center py-4"
+              className="font-body text-sm text-muted-foreground text-center py-6"
             >
               No upcoming reminders
             </motion.p>

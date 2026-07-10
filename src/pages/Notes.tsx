@@ -80,7 +80,7 @@ const NotesContent = () => {
     if (selectedFolderId) {
       const note = await createNote("Untitled", "");
       if (note) {
-        selectNote(note._id || note.id || "");
+        selectNote(String(note._id || note.id || ""));
       }
     }
   };
@@ -108,12 +108,12 @@ const NotesContent = () => {
       ? await createNoteInFolder(folderId, title, "")
       : await createNote(title, "");
     if (note) {
-      const noteId = note._id || note.id || "";
+      const noteId = String(note._id || note.id || "");
       if (folderId && folderId !== selectedFolderId) {
         selectFolder(folderId);
       }
       selectNote(noteId);
-      return note._id || note.id || "";
+      return noteId;
     }
     return null;
   }, [createNote, createNoteInFolder, selectFolder, selectNote, selectedFolderId]);
@@ -138,7 +138,7 @@ const NotesContent = () => {
   }, [allNotes, createNoteFromTemplate, openNote]);
   const handleExportVault = useCallback(async () => {
     try {
-      const result = await exportMarkdownVault(allNotes, folders);
+      const result = await exportMarkdownVault(allNotes as any, folders as any);
       toast.success(`Exported ${result.count} notes`);
     } catch (error) {
       console.error("Markdown export failed:", error);
@@ -408,7 +408,7 @@ const NotesContent = () => {
               <MarkdownEditor
                 content={selectedNote.content}
                 title={selectedNote.title}
-                noteId={selectedNote._id || selectedNote.id || ""}
+                noteId={String(selectedNote._id || selectedNote.id || "")}
                 allNotes={allNotes}
                 folders={folders}
                 onOpenNote={handleGraphNoteSelect}

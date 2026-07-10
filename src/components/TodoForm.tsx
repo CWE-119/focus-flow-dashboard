@@ -18,9 +18,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Repeat, Flag } from "lucide-react";
+import { CalendarIcon, Repeat, Flag, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useCategories } from "@/hooks/use-categories";
 
 export interface TodoFormData {
   title: string;
@@ -31,6 +32,7 @@ export interface TodoFormData {
   repeatEndDate: Date | null;
   priority: "low" | "medium" | "high";
   dueDate: Date | null;
+  categoryId?: string | null;
 }
 
 interface TodoFormProps {
@@ -60,9 +62,11 @@ const defaultFormData: TodoFormData = {
   repeatEndDate: null,
   priority: "medium",
   dueDate: null,
+  categoryId: null,
 };
 
 export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "create" }: TodoFormProps) => {
+  const { categories } = useCategories();
   const [title, setTitle] = useState(initialData?.title || "");
   const [repeatType, setRepeatType] = useState<TodoFormData["repeatType"]>(
     initialData?.repeatType || "none"
@@ -75,6 +79,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
   const [hasRepeatEndDate, setHasRepeatEndDate] = useState(!!initialData?.repeatEndDate);
   const [priority, setPriority] = useState<TodoFormData["priority"]>(initialData?.priority || "medium");
   const [dueDate, setDueDate] = useState<Date | null>(initialData?.dueDate || null);
+  const [categoryId, setCategoryId] = useState<string | null>(initialData?.categoryId ?? null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -89,6 +94,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
     setHasRepeatEndDate(!!data.repeatEndDate);
     setPriority(data.priority);
     setDueDate(data.dueDate);
+    setCategoryId(data.categoryId ?? null);
   }, [initialData, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -104,6 +110,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
       repeatEndDate: hasRepeatEndDate ? repeatEndDate : null,
       priority,
       dueDate,
+      categoryId,
     });
 
     if (mode === "create") {
@@ -117,6 +124,7 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
       setHasRepeatEndDate(false);
       setPriority("medium");
       setDueDate(null);
+      setCategoryId(null);
     }
     onOpenChange(false);
   };
@@ -173,6 +181,33 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
                 <SelectItem value="low">Low</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Category */}
+          <div className="space-y-2">
+            <Label className="font-body text-sm flex items-center gap-2">
+              <Tag className="w-4 h-4" />
+              Category
+            </Label>
+            <Select
+              value={categoryId ?? "__none__"}
+              onValueChange={(v) => setCategoryId(v === "__none__" ? null : v)}
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue placeholder="No category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No category</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                      {c.name}
+                    </span>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

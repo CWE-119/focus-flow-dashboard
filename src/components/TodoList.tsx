@@ -2,12 +2,14 @@ import React, { forwardRef, useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit2, Plus, X, Repeat, Flag } from "lucide-react";
+import { Edit2, Plus, X, Repeat, Flag, Settings2, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import TodoForm, { TodoFormData } from "./TodoForm";
 import GradientText from "@/components/ui/gradient-text";
 import { cn } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/api";
+import { useCategories, Category } from "@/hooks/use-categories";
+import CategoryManager from "./CategoryManager";
 
 interface Todo {
   _id?: string;
@@ -27,6 +29,7 @@ interface Todo {
 
 interface AnimatedTodoProps {
   todo: Todo;
+  category?: Category;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -39,13 +42,27 @@ const priorityColors = {
   high: "text-red-500",
 };
 
-// Activity grid colors converted to hex
 const activityGradientColors = ["#5ca8e0", "#9b7ed9", "#d96aa3", "#e09746"];
-const TODO_ROW_HEIGHT = 36;
-const TODO_LIST_HEIGHT = 200;
+const TODO_ROW_HEIGHT = 40;
+const TODO_LIST_HEIGHT = 240;
 const TODO_OVERSCAN = 6;
 
-const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, onToggle, onEdit, onDelete, index }, ref) => {
+const CategoryPill = ({ category }: { category: Category }) => (
+  <span
+    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-body font-medium shrink-0 border"
+    style={{
+      color: category.color,
+      backgroundColor: `${category.color}15`,
+      borderColor: `${category.color}40`,
+    }}
+    title={category.name}
+  >
+    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: category.color }} />
+    {category.name}
+  </span>
+);
+
+const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, category, onToggle, onEdit, onDelete, index }, ref) => {
   const hasRepeat = todo.repeatType && todo.repeatType !== "none";
   const title = todo.title || todo.text || "";
 
@@ -61,7 +78,7 @@ const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, onTo
         delay: index * 0.05,
         layout: { duration: 0.2 },
       }}
-      className="flex items-center gap-3 group"
+      className="flex items-center gap-3 group py-1"
     >
       <Checkbox
         checked={todo.completed}
@@ -77,14 +94,9 @@ const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, onTo
             colors={activityGradientColors}
             animationSpeed={4}
             animateOnHover={true}
-            className={cn(
-              "font-body text-sm",
-              todo.completed && "opacity-50"
-            )}
+            className={cn("font-body text-sm truncate", todo.completed && "opacity-50")}
           >
-            <span className={todo.completed ? "line-through" : ""}>
-              {title}
-            </span>
+            <span className={todo.completed ? "line-through" : ""}>{title}</span>
           </GradientText>
         ) : (
           <motion.span
@@ -98,9 +110,8 @@ const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, onTo
             {title}
           </motion.span>
         )}
-        {hasRepeat && (
-          <Repeat className="w-3 h-3 text-muted-foreground shrink-0" />
-        )}
+        {hasRepeat && <Repeat className="w-3 h-3 text-muted-foreground shrink-0" />}
+        {category && <CategoryPill category={category} />}
       </div>
       <Button
         variant="ghost"
@@ -130,6 +141,10 @@ const TodoList = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<string | "all">("all");
+  const [managerOpen, setManagerOpen] = useState(false);
+
+  const { categories, getTaskCategory, setTaskCategory, taskMap } = useCategories();
 
   const getTodoId = (todo: Todo) => todo._id || String(todo.id) || "";
 
@@ -159,19 +174,34 @@ const TodoList = () => {
     repeatEndDate: parseDate(todo.repeatEndDate),
     priority: todo.priority || "medium",
     dueDate: parseDate(todo.dueDate),
+    categoryId: taskMap[getTodoId(todo)] ?? null,
   });
+
+  const filteredTodos = useMemo(() => {
+    if (activeFilter === "all") return todos;
+    return todos.filter((t) => taskMap[getTodoId(t)] === activeFilter);
+  }, [todos, activeFilter, taskMap]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    todos.forEach((t) => {
+      const cid = taskMap[getTodoId(t)];
+      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+    });
+    return counts;
+  }, [todos, taskMap]);
+
   const visibleTodos = useMemo(() => {
     const start = Math.max(0, Math.floor(scrollTop / TODO_ROW_HEIGHT) - TODO_OVERSCAN);
     const count = Math.ceil(TODO_LIST_HEIGHT / TODO_ROW_HEIGHT) + TODO_OVERSCAN * 2;
     return {
       start,
-      items: todos.slice(start, start + count),
+      items: filteredTodos.slice(start, start + count),
       before: start * TODO_ROW_HEIGHT,
-      after: Math.max(0, (todos.length - start - count) * TODO_ROW_HEIGHT),
+      after: Math.max(0, (filteredTodos.length - start - count) * TODO_ROW_HEIGHT),
     };
-  }, [todos, scrollTop]);
+  }, [filteredTodos, scrollTop]);
 
-  // Fetch todos from backend
   const fetchTodos = async () => {
     try {
       const res = await fetch(`${getApiBaseUrl()}/todos`);
@@ -183,7 +213,6 @@ const TodoList = () => {
     }
   };
 
-  // Quick add todo (simple)
   const addQuickTodo = async () => {
     if (quickTodo.trim()) {
       try {
@@ -193,10 +222,14 @@ const TodoList = () => {
           body: JSON.stringify({ title: quickTodo.trim() }),
         });
         if (res.ok) {
+          const created = await res.json();
+          // If a filter is active, auto-assign that category
+          if (activeFilter !== "all" && created) {
+            const id = created._id || String(created.id) || "";
+            if (id) setTaskCategory(id, activeFilter);
+          }
           await fetchTodos();
           setQuickTodo("");
-        } else {
-          console.error("Failed to add todo:", res.statusText);
         }
       } catch (error) {
         console.error("Error adding todo:", error);
@@ -204,7 +237,6 @@ const TodoList = () => {
     }
   };
 
-  // Add todo with full options
   const addTodoWithOptions = async (data: TodoFormData) => {
     try {
       const res = await fetch(`${getApiBaseUrl()}/todos`, {
@@ -222,9 +254,12 @@ const TodoList = () => {
         }),
       });
       if (res.ok) {
+        const created = await res.json();
+        if (created) {
+          const id = created._id || String(created.id) || "";
+          if (id) setTaskCategory(id, data.categoryId ?? null);
+        }
         await fetchTodos();
-      } else {
-        console.error("Failed to add todo:", res.statusText);
       }
     } catch (error) {
       console.error("Error adding todo:", error);
@@ -252,19 +287,17 @@ const TodoList = () => {
         }),
       });
       if (res.ok) {
+        setTaskCategory(id, data.categoryId ?? null);
         await fetchTodos();
         setEditingTodo(null);
-      } else {
-        console.error("Failed to update todo:", res.statusText);
       }
     } catch (error) {
       console.error("Error updating todo:", error);
     }
   };
 
-  // Toggle todo completed in backend
   const toggleTodo = async (id: string) => {
-    const todo = todos.find((t) => (t._id === id || String(t.id) === id));
+    const todo = todos.find((t) => t._id === id || String(t.id) === id);
     if (!todo) return;
     try {
       await fetch(`${getApiBaseUrl()}/todos/${id}`, {
@@ -278,52 +311,123 @@ const TodoList = () => {
     }
   };
 
-  // Delete todo from backend
   const deleteTodo = async (id: string) => {
-    await fetch(`${getApiBaseUrl()}/todos/${id}`, {
-      method: "DELETE",
-    });
+    await fetch(`${getApiBaseUrl()}/todos/${id}`, { method: "DELETE" });
+    setTaskCategory(id, null);
     await fetchTodos();
   };
 
-  // Load todos on mount
   useEffect(() => {
     fetchTodos();
   }, []);
 
+  const completedCount = todos.filter((t) => t.completed).length;
+
   return (
-    <div className="border border-border p-6 bg-card">
-      <div className="flex items-center justify-between mb-6">
+    <div className="border border-border rounded-md p-6 bg-card">
+      <div className="flex items-center justify-between mb-4">
         <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
           Today's Tasks
         </span>
-        <span className="font-body text-xs text-muted-foreground">
-          {todos.filter((t) => t.completed).length}/{todos.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-body text-xs text-muted-foreground tabular-nums">
+            {completedCount}/{todos.length}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setManagerOpen(true)}
+            title="Manage categories"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Category filter chips */}
+      <div className="flex flex-wrap items-center gap-1.5 mb-4">
+        <button
+          onClick={() => setActiveFilter("all")}
+          className={cn(
+            "px-2.5 py-1 rounded-full text-[11px] font-body font-medium border transition-colors",
+            activeFilter === "all"
+              ? "bg-foreground text-background border-foreground"
+              : "bg-transparent text-muted-foreground border-border hover:border-foreground/40"
+          )}
+        >
+          All · {todos.length}
+        </button>
+        {categories.map((c) => {
+          const active = activeFilter === c.id;
+          const count = categoryCounts[c.id] || 0;
+          return (
+            <button
+              key={c.id}
+              onClick={() => setActiveFilter(c.id)}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-[11px] font-body font-medium border transition-all inline-flex items-center gap-1.5"
+              )}
+              style={{
+                color: active ? "#fff" : c.color,
+                backgroundColor: active ? c.color : `${c.color}15`,
+                borderColor: active ? c.color : `${c.color}40`,
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: active ? "#fff" : c.color }}
+              />
+              {c.name} · {count}
+            </button>
+          );
+        })}
+        {categories.length === 0 && (
+          <button
+            onClick={() => setManagerOpen(true)}
+            className="px-2.5 py-1 rounded-full text-[11px] font-body font-medium border border-dashed border-border text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+          >
+            <Tag className="w-3 h-3" />
+            Add a category
+          </button>
+        )}
       </div>
 
       <div
-        className="mb-6 max-h-[200px] overflow-y-auto"
+        className="mb-5 max-h-[240px] overflow-y-auto"
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         <AnimatePresence mode="popLayout">
-          <div style={{ height: visibleTodos.before }} />
-          <div className="space-y-3">
-            {visibleTodos.items.map((todo, index) => (
-              <AnimatedTodo
-                key={todo._id || todo.id}
-                todo={todo}
-                index={visibleTodos.start + index}
-                onToggle={() => toggleTodo(getTodoId(todo))}
-                onEdit={() => {
-                  setEditingTodo(todo);
-                  setFormOpen(true);
-                }}
-                onDelete={() => deleteTodo(getTodoId(todo))}
-              />
-            ))}
-          </div>
-          <div style={{ height: visibleTodos.after }} />
+          {filteredTodos.length === 0 ? (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="font-body text-sm text-muted-foreground text-center py-6"
+            >
+              {activeFilter === "all" ? "No tasks yet" : "No tasks in this category"}
+            </motion.p>
+          ) : (
+            <>
+              <div style={{ height: visibleTodos.before }} />
+              <div className="space-y-1">
+                {visibleTodos.items.map((todo, index) => (
+                  <AnimatedTodo
+                    key={todo._id || todo.id}
+                    todo={todo}
+                    category={getTaskCategory(getTodoId(todo))}
+                    index={visibleTodos.start + index}
+                    onToggle={() => toggleTodo(getTodoId(todo))}
+                    onEdit={() => {
+                      setEditingTodo(todo);
+                      setFormOpen(true);
+                    }}
+                    onDelete={() => deleteTodo(getTodoId(todo))}
+                  />
+                ))}
+              </div>
+              <div style={{ height: visibleTodos.after }} />
+            </>
+          )}
         </AnimatePresence>
       </div>
 
@@ -337,7 +441,11 @@ const TodoList = () => {
           value={quickTodo}
           onChange={(e) => setQuickTodo(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && addQuickTodo()}
-          placeholder="Quick add task..."
+          placeholder={
+            activeFilter === "all"
+              ? "Quick add task..."
+              : `Quick add to ${categories.find((c) => c.id === activeFilter)?.name || "category"}...`
+          }
           className="font-body text-sm border-border"
         />
         <Button onClick={addQuickTodo} variant="outline" size="icon" title="Quick add">
@@ -363,9 +471,11 @@ const TodoList = () => {
           if (!open) setEditingTodo(null);
         }}
         onSubmit={editingTodo ? updateTodoWithOptions : addTodoWithOptions}
-        initialData={editingTodo ? toFormData(editingTodo) : undefined}
+        initialData={editingTodo ? toFormData(editingTodo) : { categoryId: activeFilter !== "all" ? activeFilter : null }}
         mode={editingTodo ? "edit" : "create"}
       />
+
+      <CategoryManager isOpen={managerOpen} onOpenChange={setManagerOpen} />
     </div>
   );
 };

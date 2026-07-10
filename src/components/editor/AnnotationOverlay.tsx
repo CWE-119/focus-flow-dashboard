@@ -432,7 +432,7 @@ export const AnnotationOverlay = ({
             stroke={s.color}
             strokeWidth={s.strokeWidth}
             opacity={s.locked ? Math.min(strokeOpacity, 0.7) : strokeOpacity}
-            globalCompositeOperation={s.tool === 'eraser' ? 'destination-out' : 'source-over'}
+            globalCompositeOperation={'source-over'}
             tension={0.5}
             lineCap="round"
             lineJoin="round"

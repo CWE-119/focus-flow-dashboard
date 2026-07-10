@@ -90,7 +90,7 @@ const Timer = () => {
   const fontSize = typeof window !== 'undefined' && window.innerWidth < 768 ? 56 : 72;
 
   return (
-    <div className="border border-border p-8 bg-card">
+    <div className="border border-border rounded-md p-8 bg-card">
       <div className="flex items-center justify-between mb-6">
         <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
           Session Timer
