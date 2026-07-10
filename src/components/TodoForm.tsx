@@ -18,9 +18,10 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Repeat, Flag } from "lucide-react";
+import { CalendarIcon, Repeat, Flag, Tag } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useCategories } from "@/hooks/use-categories";
 
 export interface TodoFormData {
   title: string;
@@ -31,6 +32,7 @@ export interface TodoFormData {
   repeatEndDate: Date | null;
   priority: "low" | "medium" | "high";
   dueDate: Date | null;
+  categoryId?: string | null;
 }
 
 interface TodoFormProps {
@@ -60,6 +62,7 @@ const defaultFormData: TodoFormData = {
   repeatEndDate: null,
   priority: "medium",
   dueDate: null,
+  categoryId: null,
 };
 
 export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "create" }: TodoFormProps) => {
