@@ -185,6 +185,33 @@ export const TodoForm = ({ isOpen, onOpenChange, onSubmit, initialData, mode = "
             </Select>
           </div>
 
+          {/* Category */}
+          <div className="space-y-2">
+            <Label className="font-body text-sm flex items-center gap-2">
+              <Tag className="w-4 h-4" />
+              Category
+            </Label>
+            <Select
+              value={categoryId ?? "__none__"}
+              onValueChange={(v) => setCategoryId(v === "__none__" ? null : v)}
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue placeholder="No category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No category</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                      {c.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Due Date */}
           <div className="space-y-2">
             <Label className="font-body text-sm flex items-center gap-2">
