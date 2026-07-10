@@ -23,7 +23,7 @@ const ActiveNoteSession = () => {
 
   return (
     <div className={cn(
-      "border border-border p-4 bg-card",
+      "border border-border rounded-md p-4 bg-card",
       isRunning && "border-primary/30 bg-primary/5"
     )}>
       <div className="flex items-center gap-2 mb-2">
