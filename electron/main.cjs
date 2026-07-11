@@ -12,6 +12,20 @@ let isDev = true;
 let mainWindow;
 let backendProcess;
 
+function addModuleLookupPaths(paths) {
+  const Module = require('module');
+  const existing = new Set((process.env.NODE_PATH || '').split(path.delimiter).filter(Boolean));
+
+  for (const lookupPath of paths) {
+    if (lookupPath && !existing.has(lookupPath)) {
+      existing.add(lookupPath);
+    }
+  }
+
+  process.env.NODE_PATH = Array.from(existing).join(path.delimiter);
+  Module._initPaths();
+}
+
 // Helper: wait until a TCP port on localhost accepts connections
 function waitForPort(port, timeoutMs = 10000) {
   const net = require('net');
@@ -39,13 +53,21 @@ function startBackend() {
     // candidate paths to try (in order)
     const candidates = [];
 
-    // development fallback
-    candidates.push(path.join(__dirname, '../backend/index.js'));
+    if (app.isPackaged) {
+      // Prefer the app.asar path so backend JS can resolve app.asar/node_modules.
+      // Native bindings are still loaded from app.asar.unpacked by Electron.
+      candidates.push(path.join(app.getAppPath(), 'backend', 'index.js'));
+      candidates.push(path.join(process.resourcesPath, 'app', 'backend', 'index.js'));
+      candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'backend', 'index.js'));
 
-    // common packaged locations
-    candidates.push(path.join(process.resourcesPath, 'app.asar.unpacked', 'backend', 'index.js'));
-    candidates.push(path.join(process.resourcesPath, 'app', 'backend', 'index.js'));
-    candidates.push(path.join(app.getAppPath(), 'backend', 'index.js'));
+      addModuleLookupPaths([
+        path.join(app.getAppPath(), 'node_modules'),
+        path.join(process.resourcesPath, 'app', 'node_modules'),
+        path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules'),
+      ]);
+    } else {
+      candidates.push(path.join(__dirname, '../backend/index.js'));
+    }
 
     let chosen = null;
     for (const p of candidates) {
@@ -86,6 +108,7 @@ function startBackend() {
       console.log('📦 Requiring backend module in-process:', chosen);
       // Make env var visible before requiring backend
       process.env.FOCUSFLOW_DB_PATH = backendEnv.FOCUSFLOW_DB_PATH || process.env.FOCUSFLOW_DB_PATH;
+      process.env.PORT = backendEnv.PORT || process.env.PORT;
       require(chosen);
       console.log('✓ Backend started via require()');
     } catch (err) {
@@ -99,7 +122,12 @@ function startBackend() {
         cwd: backendDir,
         stdio: ['ignore', 'pipe', 'pipe'],
         detached: false,
-        env: backendEnv,
+        windowsHide: true,
+        env: {
+          ...backendEnv,
+          ELECTRON_RUN_AS_NODE: '1',
+          NODE_PATH: process.env.NODE_PATH || backendEnv.NODE_PATH,
+        },
       });
 
       backendProcess.stdout?.on('data', (data) => {
