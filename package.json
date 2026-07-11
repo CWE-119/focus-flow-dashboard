@@ -10,7 +10,7 @@
     "url": "https://github.com/CWE-119/focus-flow-dashboard.git"
   },
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
