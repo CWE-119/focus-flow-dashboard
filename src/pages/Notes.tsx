@@ -440,10 +440,23 @@ const NotesContent = () => {
                 onTitleChange={(title) => updateNote(getNoteId(selectedNote), { title })}
               />
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-                <FileText className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg font-body">Select a note to start editing</p>
-                <p className="text-sm mt-2">Or create a new one from a folder</p>
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground max-w-md mx-auto text-center px-6">
+                <FileText className="w-16 h-16 mb-4 opacity-40" />
+                <p className="text-lg font-body font-medium text-foreground">No note selected</p>
+                <p className="text-sm mt-1">Pick a folder, choose a note, or start something new.</p>
+                <div className="flex items-center gap-2 mt-6">
+                  <Button variant="outline" size="sm" onClick={() => setCommandOpen(true)} className="gap-2">
+                    <Search className="w-4 h-4" /> Search (⌘K)
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={createDailyNote} className="gap-2">
+                    <CalendarDays className="w-4 h-4" /> Daily note
+                  </Button>
+                  {selectedFolderId && (
+                    <Button size="sm" onClick={handleCreateNote} className="gap-2">
+                      <Plus className="w-4 h-4" /> New note
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </main>
