@@ -51,6 +51,14 @@ function Digit({ place, value, height, digitStyle }: DigitProps) {
     );
   }
 
+  return <AnimatedDigit place={place} value={value} height={height} digitStyle={digitStyle} />;
+}
+
+interface AnimatedDigitProps extends Omit<DigitProps, 'place'> {
+  place: number;
+}
+
+function AnimatedDigit({ place, value, height, digitStyle }: AnimatedDigitProps) {
   const valueRoundedToPlace = Math.floor(value / place);
   const animatedValue = useSpring(valueRoundedToPlace, {
     stiffness: 75,

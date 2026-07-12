@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Bell,
   Brush,
+  Camera,
   CheckSquare,
   Clock,
   Download,
@@ -126,6 +127,7 @@ const sections = [
 const quickActions = [
   { label: "Open Notes", icon: FileText, path: "/notes" },
   { label: "Open Canvas", icon: Palette, path: "/canvas" },
+  { label: "Screenshot Studio", icon: Camera, path: "/showcase" },
   { label: "Dashboard", icon: Clock, path: "/" },
 ];
 

@@ -1,443 +1,223 @@
-# 🎯 FocusFlow - Productivity Dashboard
+<div align="center">
+  <img src="public/FucosFlow.png" width="96" alt="FocusFlow logo" />
+  <h1>FocusFlow</h1>
+  <p><strong>Focus deeply, plan clearly, and connect what you learn.</strong></p>
+  <p>A local-first productivity workspace for focus sessions, tasks, reminders, Markdown notes, knowledge graphs, and visual thinking.</p>
 
-A modern, feature-rich productivity and focus management application built with React, TypeScript, Express.js, and SQLite.
+  [![Release](https://img.shields.io/github/v/release/CWE-119/focus-flow-dashboard?style=flat-square)](https://github.com/CWE-119/focus-flow-dashboard/releases)
+  [![Windows release](https://github.com/CWE-119/focus-flow-dashboard/actions/workflows/release-windows.yml/badge.svg)](https://github.com/CWE-119/focus-flow-dashboard/actions/workflows/release-windows.yml)
+  ![React](https://img.shields.io/badge/React-18-20232a?style=flat-square&logo=react)
+  ![Electron](https://img.shields.io/badge/Electron-40-20232a?style=flat-square&logo=electron)
+  ![SQLite](https://img.shields.io/badge/SQLite-local-20232a?style=flat-square&logo=sqlite)
+</div>
 
-**Available as a free desktop app!** Download for Windows, macOS, or Linux → [INSTALL.md](./INSTALL.md)
+## A calmer home for productive work
 
-**Self-Hosted Single .exe** - Deploy as a standalone executable with built-in SQLite database!
+FocusFlow brings the parts of a productive day into one desktop workspace. Run
+a focus session, plan categorized tasks, remember what comes next, write rich
+Markdown notes, follow ideas through an Obsidian-style graph, and sketch on a
+freeform canvas. Data is stored locally in SQLite; no MongoDB server or cloud
+account is required.
 
-## ✨ Features
+## What is included
 
-### 📊 Core Features
-- **Focus Timer** - Track focus sessions with visual timer
-- **Todo List** - Manage daily tasks and priorities
-- **Activity Dashboard** - Visual contribution grid showing productivity over time
-- **Statistics** - Real-time productivity metrics and insights
-- **Task Reminders** - Set date-based reminders with notifications (dates glow red!)
-- **Notes & Folders** - Organize notes with markdown editor and folder structure
-- **Clock** - Real-time clock display
+### Focus dashboard
 
-### 🎨 User Experience
-- **Dark/Light Mode** - Comfortable viewing in any environment
-- **Keyboard Shortcuts** - Fast navigation with hotkeys:
-  - `Ctrl+Shift+R` - Create new reminder
-  - `Ctrl+N` - New note
-  - `Ctrl+Shift+N` - New folder
-  - `Ctrl+S` - Save
-  - `Ctrl+K` - Search
-  - `Esc` - Close dialogs
-- **Real-time Sync** - All data persists to SQLite
-- **Responsive Design** - Works on desktop and tablet
-- **Toast Notifications** - User-friendly feedback
+- Focus timer with saved session history and an active-session indicator
+- Tasks with priorities, due dates, repeat rules, categories, and filters
+- Reminders, a contribution calendar, streaks, session statistics, and tips
+- Live clock, audio visualizer, keyboard shortcuts, and 12 visual themes
 
-## 🚀 Getting Started
+### Connected notes
 
-### Prerequisites
-- Node.js (v18+)
-- npm or bun
+- Folder-based Markdown notes with autosave, conflict detection, revisions,
+  pinned notes, recent notes, daily notes, and templates
+- Wiki links, backlinks, outgoing links, missing links, and unlinked mentions
+- LaTeX, highlighted code, Mermaid, DBML, images, video, callouts, and paper
+  backgrounds
+- Preview annotations with drawing tools, layers, locking, undo, and redo
+- Markdown-folder import/export, including annotation sidecar files
+- Searchable whole-vault and local graph views with filters, ghost nodes, zoom,
+  pan, drag, pinning, previews, and direct note opening
 
-### Installation
+### Visual canvas
+
+- Persistent freeform drawings with pen, text, shapes, and images
+- Selection, layering, undo/redo, autosave, and PNG export
+
+## Download
+
+Windows x64 is the automated release target. Open
+[GitHub Releases](https://github.com/CWE-119/focus-flow-dashboard/releases) and
+choose the asset that fits your use case:
+
+- **Setup EXE** — installed application with in-app update support
+- **Portable EXE** — runs without installation and is updated manually
+
+The repository contains macOS and Linux builder targets, but those release
+paths are not yet validated or published automatically. See the
+[Windows release guide](docs/WINDOWS_RELEASES.md) for publishing and updater
+verification.
+
+## Run it locally
+
+### Requirements
+
+- Node.js 22 (the release workflow uses 22.12)
+- npm
 
 ```bash
-# 1. Clone and install dependencies
-git clone <repository-url>
+git clone https://github.com/CWE-119/focus-flow-dashboard.git
 cd focus-flow-dashboard
-npm install
+npm ci
+```
 
-# 2. Install backend dependencies
-cd backend
-npm install
-cd ..
+For the complete desktop development experience, including the local backend:
 
-# 3. Create .env file in backend directory
-cat > backend/.env << EOF
-MONGODB_URI=mongodb://localhost:27017/focusflow
-PORT=5000
-EOF
+```bash
+npm run dev:electron
+```
 
-# 4. Start MongoDB (if running locally)
-mongod
+For browser development, run the API and Vite in separate terminals:
 
-# 5. Start both servers in separate terminals
+```bash
+# Terminal 1 — Express + SQLite on http://localhost:5000
+npm --prefix backend start
 
-# Terminal 1 - Backend (SQLite)
-cd backend
-node index.js
-# Should see: Server running on port 5000
-# SQLite database created at: backend/focusflow.db
-
-# Terminal 2 - Frontend
+# Terminal 2 — React on http://localhost:3000
 npm run dev
-# Should see: Local: http://localhost:5173
 ```
 
-### Access the App
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5000/api
-- **Database**: SQLite file at `backend/focusflow.db`
+No `.env` file is required. Optional configuration:
 
-## 📁 Project Structure
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | Override the backend port (default `5000`) |
+| `FOCUSFLOW_DB_PATH` | Override the SQLite file location |
+| `VITE_API_URL` | Point the browser build at another API base URL |
 
+## Promotional screenshot studio
+
+The app includes deterministic static-data scenes for creating consistent
+product images. Start Vite, then open:
+
+| Route | Best use |
+| --- | --- |
+| `/showcase` | Scene picker and capture instructions |
+| `/showcase/focus` | Dashboard hero and feature announcements |
+| `/showcase/notes` | Notes, writing, and knowledge-management promotion |
+| `/showcase/graph` | Connected-thinking and graph-view promotion |
+
+Add `?capture=1` to any scene to remove studio controls, for example:
+`http://localhost:3000/showcase/focus?capture=1`.
+
+For consistent framing, capture at **1400 × 900**. The scenes render without
+backend data and never write showcase content to the user's database.
+
+## How it works
+
+```text
+React renderer  ──HTTP──>  Express API  ──>  SQLite
+      │                         ▲
+      └──── Electron shell ─────┘
+             starts the API,
+             owns updates and
+             chooses the data path
 ```
+
+| Layer | Source of truth |
+| --- | --- |
+| UI and routes | `src/` — React, TypeScript, Vite, Tailwind, Radix/shadcn |
+| Desktop shell | `electron/main.cjs` and `electron/preload.js` |
+| API runtime | `backend/index.js` — the canonical Express backend |
+| Data | SQLite via `sqlite3` |
+| Packaging | `electron-builder.json` and `scripts/after-pack.cjs` |
+| Windows publishing | `.github/workflows/release-windows.yml` |
+
+In browser development, SQLite is created at `backend/focusflow.db` unless
+`FOCUSFLOW_DB_PATH` is set. In the packaged desktop app, Electron places the
+database in its writable user-data directory so updates do not overwrite it.
+
+The API covers task categories, todos, notes, note references and revisions,
+the graph, folders, focus history and sessions, reminders, annotations, and
+drawings. The desktop build packages the same backend used during development.
+
+## Project map
+
+```text
 focus-flow-dashboard/
-├── backend/                          # Express.js server
-│   ├── models/                       # MongoDB schemas
-│   │   ├── Todo.js
-│   │   ├── Note.js
-│   │   ├── Folder.js
-│   │   ├── Reminder.js
-│   │   └── History.js
-│   ├── routes/                       # API endpoints
-│   │   ├── todos.js
-│   │   ├── notes.js
-│   │   ├── folders.js
-│   │   ├── reminders.js
-│   │   └── history.js
-│   ├── index.js                      # Server entry point
-│   └── package.json
-│
 ├── src/
-│   ├── components/                   # React components
-│   │   ├── Timer.tsx                 # Focus timer
-│   │   ├── Clock.tsx                 # Real-time clock
-│   │   ├── TodoList.tsx              # Todo management
-│   │   ├── ContributionGrid.tsx      # Activity board
-│   │   ├── Stats.tsx                 # Statistics
-│   │   ├── NotesList.tsx             # Notes list
-│   │   ├── FoldersSidebar.tsx        # Folder management
-│   │   ├── MarkdownEditor.tsx        # Rich note editor
-│   │   ├── ReminderForm.tsx          # Reminder creation
-│   │   ├── ReminderPopup.tsx         # Reminder details
-│   │   └── ui/                       # shadcn/ui components
-│   │
-│   ├── contexts/                     # React Context API
-│   │   ├── SessionContext.tsx        # Session management
-│   │   ├── NotesContext.tsx          # Notes & folders state
-│   │   └── RemindersContext.tsx      # Reminders state
-│   │
-│   ├── hooks/                        # Custom hooks
-│   │   ├── use-keyboard-shortcuts.ts # Keyboard shortcuts
-│   │   ├── use-mobile.tsx
-│   │   └── use-toast.ts
-│   │
-│   ├── lib/
-│   │   ├── api.ts                    # Centralized API calls
-│   │   └── utils.ts
-│   │
-│   ├── pages/
-│   │   ├── Index.tsx                 # Dashboard home
-│   │   ├── Notes.tsx                 # Notes page
-│   │   └── NotFound.tsx              # 404 page
-│   │
-│   ├── App.tsx                       # Main app component
-│   ├── main.tsx                      # Entry point
-│   └── index.css                     # Global styles
-│
-├── public/                           # Static assets
-├── package.json                      # Frontend dependencies
-├── vite.config.ts                    # Vite configuration
-├── tailwind.config.ts                # Tailwind CSS
-├── tsconfig.json                     # TypeScript config
-└── README.md                         # This file
+│   ├── components/          reusable app and editor UI
+│   ├── contexts/            sessions, reminders, notes, themes, timers
+│   ├── lib/                 API client, note links, vault import/export
+│   ├── pages/               dashboard, notes, canvas, help
+│   ├── pages/showcase/      promotional capture scenes
+│   └── test/                frontend unit and integration tests
+├── backend/
+│   ├── index.js             canonical API and SQLite schema
+│   └── test/                backend integration tests
+├── electron/                desktop process and secure preload bridge
+├── scripts/                 packaging, cleanup, and release checks
+├── docs/
+│   └── WINDOWS_RELEASES.md  release operator guide
+└── .github/workflows/       Windows tag-release automation
 ```
 
-## 🛠 Tech Stack
-
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool (lightning fast)
-- **Tailwind CSS** - Utility-first styling
-- **shadcn/ui** - Accessible UI components
-- **motion/react** - Smooth animations
-- **sonner** - Toast notifications
-- **React Router** - Client-side routing
-- **React Context API** - State management
-
-### Backend
-- **Node.js + Express.js** - REST API server
-- **SQLite** - Lightweight, self-hosted database
-- **TypeScript** - Type-safe backend code
-- **CORS** - Cross-origin requests
-- **dotenv** - Environment variables
-
-## 📡 API Endpoints
-
-### Todos
-```
-GET    /api/todos              - Get all todos
-POST   /api/todos              - Create todo
-PUT    /api/todos/:id          - Update todo
-DELETE /api/todos/:id          - Delete todo
-```
-
-### Notes
-```
-GET    /api/notes              - Get all notes
-POST   /api/notes              - Create note
-PUT    /api/notes/:id          - Update note
-DELETE /api/notes/:id          - Delete note
-```
-
-### Folders
-```
-GET    /api/folders            - Get all folders
-POST   /api/folders            - Create folder
-PUT    /api/folders/:id        - Update folder
-DELETE /api/folders/:id        - Delete folder
-```
-
-### Reminders
-```
-GET    /api/reminders          - Get all reminders
-GET    /api/reminders/date/:date - Get reminders by date
-POST   /api/reminders          - Create reminder
-PUT    /api/reminders/:id      - Update reminder
-DELETE /api/reminders/:id      - Delete reminder
-```
-
-### Sessions & History
-```
-GET    /api/history            - Get all history
-POST   /api/history            - Log action
-```
-
-## 💾 Data Models
-
-### Todo
-```typescript
-{
-  title: string,
-  completed: boolean,
-  createdAt: Date
-}
-```
-
-### Note
-```typescript
-{
-  title: string,
-  content: string,
-  createdAt: Date,
-  updatedAt?: Date
-}
-```
-
-### Folder
-```typescript
-{
-  name: string,
-  color: string,
-  createdAt: Date
-}
-```
-
-### Reminder
-```typescript
-{
-  title: string,
-  description: string,
-  date: Date,
-  completed: boolean,
-  createdAt: Date,
-  updatedAt?: Date
-}
-```
-
-### Session
-```typescript
-{
-  start: string,
-  end: string,
-  duration: number,
-  date: Date
-}
-```
-
-## 🎮 Usage Guide
-
-### Create a Focus Session
-1. Click the timer on the home page
-2. Enter duration in minutes
-3. Click "Start" to begin
-4. Focus time tracked automatically
-
-### Manage Todos
-1. Click "ADD TODO" to create new task
-2. Type task description
-3. Check box to mark complete
-4. Click trash to delete
-
-### Create Reminders
-1. Press `Ctrl+Shift+R` or click "New Reminder"
-2. Enter title, description, date, and time
-3. Click "Create Reminder"
-4. Dates with reminders show red glow on activity board
-5. Click red date to view reminder details
-
-### Organize Notes
-1. Go to NOTES page
-2. Create folders in sidebar
-3. Create notes inside folders
-4. Edit with markdown support
-5. Changes auto-save to database
-
-### View Activity
-- Activity board shows productivity heatmap
-- Click any date to see focus sessions
-- Dates with reminders show red pulse
-- Darker squares = more focus time
-
-## 📊 Statistics
-
-Real-time stats show:
-- **Total Sessions** - Number of focus sessions
-- **Total Time** - Combined focus time
-- **Daily Average** - Average focus per day
-- **Longest Session** - Maximum duration
-- **Current Streak** - Consecutive days active
-
-## ⌨ Keyboard Shortcuts
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl+Shift+R` | Create new reminder |
-| `Ctrl+N` | New note |
-| `Ctrl+Shift+N` | New folder |
-| `Ctrl+S` | Save note |
-| `Ctrl+K` | Search |
-| `Esc` | Close dialogs |
-
-## 🔧 Development
-
-### Running in Development Mode
-
-```bash
-# Terminal 1 - Backend with auto-reload
-cd backend
-npm run dev
-
-# Terminal 2 - Frontend with hot reload
-npm run dev
-```
-
-### Building for Production
-
-```bash
-# Build frontend
-npm run build
-
-# Start backend in production
-cd backend
-NODE_ENV=production node index.js
-```
-
-### Testing
-
-```bash
-npm run test
-npm run test:ui
-```
-
-### Code Quality
-
-```bash
-# Lint
-npm run lint
-
-# Format
-npm run format
-```
-
-## 🐛 Troubleshooting
-
-### Frontend shows "Server is up and running"
-- You're visiting `http://localhost:5000` (backend) instead of `http://localhost:8080` (frontend)
-- Go to `http://localhost:8080`
-
-### Cannot create notes/reminders
-- Ensure MongoDB is running
-- Check backend console for connection errors
-- Verify `MONGODB_URI` in `backend/.env`
-
-### Keyboard shortcuts not working
-- Ensure app window is focused
-- Some browser extensions may intercept shortcuts
-- Try different key combinations
-
-### Data not persisting
-- Verify MongoDB connection: `mongosh` → `use focusflow` → `db.todos.find()`
-- Check backend logs for errors
-- Ensure backend is running
-
-### Port already in use
-```bash
-# Kill process on port 5000 (backend)
-npx kill-port 5000
-
-# Kill process on port 8080 (frontend)
-npx kill-port 8080
-```
-
-## 📈 Future Enhancements
-
-Planned features:
-- [ ] Search & filter notes
-- [ ] Tags system for notes
-- [ ] Export notes (PDF, Markdown, HTML)
-- [ ] Calendar view for sessions
-- [ ] Goal setting & tracking
-- [ ] Habit tracking
-- [ ] Integrations (Google Calendar, Slack)
-- [ ] Mobile app (React Native)
-- [ ] Collaborative features
-- [ ] AI-powered suggestions
-
-## 📝 License
-
-MIT License - Feel free to use this project for personal or commercial purposes.
-
-## 🤝 Contributing
-
-Contributions welcome! Feel free to:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## 📧 Support
-
-Need help? 
-- Check the troubleshooting section
-- Review backend logs: `backend/index.js`
-- Check browser console for errors (F12)
-
----
-
-**Built with ❤️ for productive people who want to stay focused.**
-
-*Last Updated: January 31, 2026*
-
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Vite on port 3000 |
+| `npm run dev:electron` | Start Vite and the Electron desktop shell |
+| `npm run test` | Run Vitest once |
+| `npm run test:backend` | Run Node backend integration tests |
+| `npm run lint` | Run ESLint |
+| `npm run build` | Create the production renderer bundle |
+| `npm run build:electron:win` | Build Windows installer and portable targets |
+| `npm run release:check` | Run release guards, tests, and a production build |
+| `npm run clean:electron` | Remove stale Electron build output |
+
+## Roadmap
+
+The next improvements are intentionally focused on reliability and a complete
+local-first experience:
+
+- Add pull-request CI plus broader backend, Electron, and end-to-end coverage
+- Complete recurring-task generation and add scheduled desktop notifications
+- Bind the desktop API to loopback, narrow CORS, add request limits, consistent
+  validation, a health endpoint, and structured logs
+- Split the canonical backend into testable route, service, and database modules
+- Add whole-app backup/restore and PDF/HTML note export
+- Add note tags, stronger search filters, a session calendar, goals, and habits
+- Sign Windows installers and validate native macOS/Linux release pipelines
+
+## Contributing and license
+
+Bug reports and focused pull requests are welcome. Run the frontend tests,
+backend tests, lint, and production build before opening a pull request.
+
+This repository does not currently include a software license. Add an explicit
+license before treating the code as generally redistributable or reusable.
+
+## Updates
+
+### Unreleased — July 12, 2026
+
+- Added a dedicated promotional screenshot studio with deterministic focus,
+  notes, and graph scenes plus clean capture URLs
+- Replaced the stale README with a source-accurate product, development,
+  architecture, release, promotion, and roadmap guide
+- Consolidated the documentation into this README and one Windows release guide
+- Removed obsolete MongoDB-era documents, historical completion reports, empty
+  notes, and unused UI boilerplate
+- Removed the dead duplicate backend trees and stale MongoDB environment file
+  from both the source tree and future desktop packages
+- Corrected single-note lookup for the SQLite schema and added integration coverage
+- Removed leftover Lovable tooling/metadata and cleared the project's lint errors
+
+### v1.2.0 — July 11, 2026
+
+- Persisted task categories in SQLite and migrated legacy browser-only category data
+- Added the tag-driven Windows installer/portable release and auto-update workflow
+- Fixed packaged backend resolution and enforced a Windows-native SQLite binding
+- Refined the notes workspace navigation and list experience

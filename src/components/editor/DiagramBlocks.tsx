@@ -148,7 +148,7 @@ const parseDbml = (code: string) => {
       const clean = line.replace(/\/\/.*$/, "").trim();
       if (!clean || /^(indexes|note:|headercolor:|\})/i.test(clean)) return;
 
-      const match = clean.match(/^"([^"]+)"\s+([^\[\s]+)(?:\s+\[([^\]]+)\])?|^([A-Za-z0-9_.-]+)\s+([^\[\s]+)(?:\s+\[([^\]]+)\])?/);
+      const match = clean.match(/^"([^"]+)"\s+([^[\s]+)(?:\s+\[([^\]]+)\])?|^([A-Za-z0-9_.-]+)\s+([^[\s]+)(?:\s+\[([^\]]+)\])?/);
       if (!match) return;
 
       const fieldName = normalizeId(match[1] || match[4] || "");

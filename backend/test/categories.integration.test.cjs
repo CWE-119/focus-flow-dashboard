@@ -222,3 +222,20 @@ test('migrates legacy tasks and persists category CRUD and assignments', async (
   const todoAfterDelete = todosAfterDelete.body.find((todo) => todo.id === createdTodo.body.id);
   assert.equal(todoAfterDelete.categoryId, null);
 });
+
+test('creates and retrieves a single note by its SQLite id', async () => {
+  const createdNote = await request('/notes', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: 'Release notes',
+      content: 'A focused workspace for connected work.',
+    }),
+  });
+
+  assert.equal(createdNote.response.statusCode, 201);
+
+  const fetchedNote = await request(`/notes/${createdNote.body.id}`);
+  assert.equal(fetchedNote.response.statusCode, 200);
+  assert.equal(fetchedNote.body.id, createdNote.body.id);
+  assert.equal(fetchedNote.body.title, 'Release notes');
+});

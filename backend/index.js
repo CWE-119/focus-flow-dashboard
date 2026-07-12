@@ -818,7 +818,7 @@ app.get('/api/notes/folder/:folderId', (req, res) => {
 
 // Get single note
 app.get('/api/notes/:id', (req, res) => {
-  db.get('SELECT * FROM notes WHERE id = ? OR _id = ?', [req.params.id, req.params.id], (err, row) => {
+  db.get('SELECT * FROM notes WHERE id = ?', [req.params.id], (err, row) => {
     if (err) {
       console.error('Error fetching note:', err);
       return res.status(500).json({ error: 'Failed to fetch note' });

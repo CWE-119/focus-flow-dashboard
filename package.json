@@ -1,9 +1,8 @@
 {
   "name": "focus-flow-dashboard",
-  "description": "A dashboard for FocusFlow application",
+  "description": "A local-first productivity workspace for focus sessions, connected notes, and visual planning",
   "author": {
-    "name": "Samiul Nahiyan",
-    "email": "noemail.email@example.com"
+    "name": "Samiul Nahiyan"
   },
   "repository": {
     "type": "git",
@@ -118,7 +117,6 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "jsdom": "^20.0.3",
-    "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",

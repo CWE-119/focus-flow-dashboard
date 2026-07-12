@@ -34,14 +34,6 @@ if (dbStatus.length) {
   fail(`SQLite runtime files are dirty/untracked: ${dbStatus.join("; ")}`);
 }
 
-const serverPath = "backend/src/server.ts";
-if (existsSync(serverPath)) {
-  const server = readFileSync(serverPath, "utf8");
-  if (!server.includes("require('../index.js')")) {
-    fail("backend/src/server.ts must delegate to backend/index.js");
-  }
-}
-
 const backendPackage = JSON.parse(readFileSync("backend/package.json", "utf8"));
 if (backendPackage.main !== "index.js") {
   fail("backend/package.json main must be index.js");

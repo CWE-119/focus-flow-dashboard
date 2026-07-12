@@ -294,7 +294,6 @@ export function useAnnotations(noteId: string) {
     clearAll,
     canUndo,
     canRedo,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _historyVersion: historyVersion, // forces re-render
   };
 }

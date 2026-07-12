@@ -8,12 +8,8 @@
   "files": [
     "dist/**/*",
     "electron/**/*",
-    "backend/**/*",
-    "!backend/node_modules/**/*",
-    "!backend/*.db",
-    "!backend/*.db-*",
-    "!backend/*.sqlite",
-    "!backend/*.sqlite-*",
+    "backend/index.js",
+    "backend/package.json",
     "node_modules/**/*",
     "package.json"
   ],
