@@ -1034,38 +1034,45 @@ app.post('/api/notes', (req, res) => {
 });
 
 // Folders
+const mapFolderRow = (row) => row ? ({ ...row, _id: row.id, parentId: row.parentId ?? null }) : row;
+
 app.get('/api/folders', (req, res) => {
   db.all('SELECT * FROM folders ORDER BY createdAt DESC', (err, rows) => {
     if (err) {
       console.error('Error fetching folders:', err);
       return res.status(500).json({ error: 'Failed to fetch folders' });
     }
-    res.json(rows || []);
+    res.json((rows || []).map(mapFolderRow));
   });
 });
 
 app.post('/api/folders', (req, res) => {
-  const { name, color } = req.body;
+  const { name, color, parentId } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
   const finalColor = color || '#3b82f6'; // default blue if not provided
 
   db.run(
-    'INSERT INTO folders (name, color) VALUES (?, ?)',
-    [name, finalColor],
+    'INSERT INTO folders (name, color, parentId) VALUES (?, ?, ?)',
+    [name, finalColor, parentId || null],
     function(err) {
       if (err) {
         console.error('Error creating folder:', err);
         return res.status(500).json({ error: 'Failed to create folder' });
       }
-      res.status(201).json({ id: this.lastID, name, color: finalColor });
+      db.get('SELECT * FROM folders WHERE id = ?', [this.lastID], (err2, row) => {
+        if (err2 || !row) {
+          return res.status(201).json({ id: this.lastID, _id: this.lastID, name, color: finalColor, parentId: parentId || null });
+        }
+        res.status(201).json(mapFolderRow(row));
+      });
     }
   );
 });
 
-// Update folder (name, color)
+// Update folder (name, color, parentId)
 app.put('/api/folders/:id', (req, res) => {
-  const { name, color } = req.body;
+  const { name, color, parentId } = req.body;
   const updates = [];
   const values = [];
 
@@ -1076,6 +1083,13 @@ app.put('/api/folders/:id', (req, res) => {
   if (color !== undefined) {
     updates.push('color = ?');
     values.push(color);
+  }
+  if (parentId !== undefined) {
+    if (parentId !== null && String(parentId) === String(req.params.id)) {
+      return res.status(400).json({ error: 'A folder cannot be its own parent' });
+    }
+    updates.push('parentId = ?');
+    values.push(parentId === null ? null : parentId);
   }
 
   if (updates.length === 0) {
@@ -1095,33 +1109,53 @@ app.put('/api/folders/:id', (req, res) => {
         console.error('Error fetching updated folder:', err2);
         return res.status(500).json({ error: 'Failed to fetch updated folder' });
       }
-      res.json(row || {});
+      res.json(mapFolderRow(row) || {});
     });
   });
 });
 
-// Delete folder and its notes
+// Delete folder, its subfolders and all their notes
 app.delete('/api/folders/:id', (req, res) => {
   const folderId = req.params.id;
 
-  // Delete notes belonging to this folder, then the folder itself
-  db.serialize(() => {
-    db.run('DELETE FROM notes WHERE folderId = ?', [folderId], (err) => {
-      if (err) {
-        console.error('Error deleting folder notes:', err);
-        return res.status(500).json({ error: 'Failed to delete folder notes' });
-      }
+  db.all('SELECT id, parentId FROM folders', (errAll, rows) => {
+    if (errAll) {
+      console.error('Error loading folders for delete:', errAll);
+      return res.status(500).json({ error: 'Failed to delete folder' });
+    }
 
-      db.run('DELETE FROM folders WHERE id = ?', [folderId], function(err2) {
-        if (err2) {
-          console.error('Error deleting folder:', err2);
-          return res.status(500).json({ error: 'Failed to delete folder' });
+    const all = rows || [];
+    const ids = [Number(folderId)];
+    let cursor = 0;
+    while (cursor < ids.length) {
+      const current = ids[cursor++];
+      all.forEach((f) => {
+        if (f.parentId != null && Number(f.parentId) === Number(current) && !ids.includes(Number(f.id))) {
+          ids.push(Number(f.id));
         }
-        res.json({ success: true });
+      });
+    }
+
+    const placeholders = ids.map(() => '?').join(',');
+    db.serialize(() => {
+      db.run(`DELETE FROM notes WHERE folderId IN (${placeholders})`, ids, (err) => {
+        if (err) {
+          console.error('Error deleting folder notes:', err);
+          return res.status(500).json({ error: 'Failed to delete folder notes' });
+        }
+
+        db.run(`DELETE FROM folders WHERE id IN (${placeholders})`, ids, function(err2) {
+          if (err2) {
+            console.error('Error deleting folder:', err2);
+            return res.status(500).json({ error: 'Failed to delete folder' });
+          }
+          res.json({ success: true, deletedFolderIds: ids });
+        });
       });
     });
   });
 });
+
 
 // History
 app.get('/api/history', (req, res) => {
