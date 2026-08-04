@@ -602,7 +602,7 @@ app.delete('/api/todos/:id', (req, res) => {
   });
 });
 
-const mapNoteRow = (row) => row ? ({ ...row, _id: row.id, pinned: Boolean(row.pinned) }) : row;
+const mapNoteRow = (row) => row ? ({ ...row, _id: row.id, pinned: Boolean(row.pinned), important: Boolean(row.important) }) : row;
 
 const normalizeTitle = (value = '') =>
   String(value)
@@ -956,7 +956,7 @@ app.post('/api/notes/:id/restore/:versionId', (req, res) => {
 
 // Update note
 app.put('/api/notes/:id', (req, res) => {
-  const { title, content, folderId, pinned, clientUpdatedAt } = req.body;
+  const { title, content, folderId, pinned, important, clientUpdatedAt } = req.body;
   db.get('SELECT * FROM notes WHERE id = ?', [req.params.id], (err, current) => {
     if (err) {
       console.error('Error fetching note before update:', err);
@@ -973,6 +973,7 @@ app.put('/api/notes/:id', (req, res) => {
     if (content !== undefined) { updates.push('content = ?'); values.push(content); }
     if (folderId !== undefined) { updates.push('folderId = ?'); values.push(folderId); }
     if (pinned !== undefined) { updates.push('pinned = ?'); values.push(pinned ? 1 : 0); }
+    if (important !== undefined) { updates.push('important = ?'); values.push(important ? 1 : 0); }
     if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
     updates.push('revision = COALESCE(revision, 1) + 1');
     updates.push('updatedAt = CURRENT_TIMESTAMP');
