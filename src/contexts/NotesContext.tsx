@@ -319,6 +319,10 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const toggleNoteImportant = async (id: string, important: boolean): Promise<Note | null> => {
+    return updateNote(id, { important });
+  };
+
   const toggleNotePinned = async (id: string, pinned: boolean): Promise<Note | null> => {
     return updateNote(id, { pinned });
   };
@@ -433,6 +437,7 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
         createNoteInFolder,
         updateNote,
         toggleNotePinned,
+        toggleNoteImportant,
         deleteNote,
         selectNote,
         getSelectedNote,
