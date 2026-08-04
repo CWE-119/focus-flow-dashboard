@@ -165,13 +165,14 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Create folder
-  const createFolder = async (name: string, color: string): Promise<Folder | null> => {
+  const createFolder = async (name: string, color: string, parentId?: string | null): Promise<Folder | null> => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/folders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, color }),
+        body: JSON.stringify({ name, color, parentId: parentId ?? null }),
       });
+
       if (!response.ok) throw new Error("Failed to create folder");
       const folder = await response.json();
       setFolders((prev) => [...prev, folder]);
