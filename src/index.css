@@ -529,7 +529,124 @@
   @apply border-border my-6;
 }
 
+/* Highlighted headings + bullet points (banner style preview) */
+.prose-highlight h1,
+.prose-highlight h2,
+.prose-highlight h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.375rem;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  box-shadow: 0 1px 0 hsl(var(--foreground) / 0.06);
+}
+
+.prose-highlight h1::after,
+.prose-highlight h2::after,
+.prose-highlight h3::after {
+  content: "→";
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.prose-highlight h2 {
+  background: hsl(var(--primary) / 0.82);
+}
+
+.prose-highlight h3 {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  font-size: 1.05rem;
+}
+
+.prose-highlight h4,
+.prose-highlight h5,
+.prose-highlight h6 {
+  border-left: 3px solid hsl(var(--primary));
+  padding-left: 0.6rem;
+}
+
+.prose-highlight ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.prose-highlight ul > li {
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-highlight ul > li::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  top: 0.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.prose-highlight ul > li > ul > li::before {
+  background: hsl(var(--primary) / 0.55);
+}
+
+.prose-highlight ol {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: highlight-ol;
+}
+
+.prose-highlight ol > li {
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.5rem;
+  counter-increment: highlight-ol;
+}
+
+.prose-highlight ol > li::before {
+  content: counter(highlight-ol);
+  position: absolute;
+  left: 0;
+  top: 0.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.prose-highlight ul > li input[type="checkbox"] {
+  margin-right: 0.35rem;
+}
+
+.prose-highlight ul > li:has(input[type="checkbox"])::before {
+  display: none;
+}
+
+.prose-highlight ul > li:has(input[type="checkbox"]) {
+  padding-left: 0.25rem;
+}
+
 .sidebar-scroll {
+
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
