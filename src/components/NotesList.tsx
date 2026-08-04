@@ -163,8 +163,10 @@ const NotesList = () => {
     deleteNote,
     selectNote,
     toggleNotePinned,
+    toggleNoteImportant,
     getSelectedFolder,
   } = useNotes();
+
 
   const folder = getSelectedFolder();
   const [query, setQuery] = useState("");
@@ -254,6 +256,8 @@ const NotesList = () => {
             <div className="space-y-1">
               {filteredNotes.map((note, index) => {
                 const id = getNoteId(note);
+                const updated = new Date((note as any).updatedAt || (note as any).createdAt || 0).getTime();
+                const isRecent = Date.now() - updated < 48 * 3600 * 1000;
                 return (
                   <NoteRow
                     key={id}
@@ -261,14 +265,18 @@ const NotesList = () => {
                     snippet={stripMarkdown(note.content || "").slice(0, 80)}
                     updatedAt={(note as any).updatedAt}
                     pinned={Boolean((note as any).pinned)}
+                    important={Boolean((note as any).important)}
+                    isRecent={isRecent}
                     isSelected={id === String(selectedNoteId)}
                     onClick={() => selectNote(id || null)}
                     onDelete={() => deleteNote(id)}
                     onTogglePin={() => toggleNotePinned(id, !(note as any).pinned)}
+                    onToggleImportant={() => toggleNoteImportant(id, !(note as any).important)}
                     index={index}
                   />
                 );
               })}
+
             </div>
           )}
         </AnimatePresence>
