@@ -717,6 +717,17 @@ const MarkdownEditor = ({
 
         <div className="w-px h-6 bg-border mx-1" />
 
+        {/* Highlighted headings / bullets style */}
+        <Button
+          variant={highlightStyle ? "default" : "ghost"}
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => setHighlightStyle((prev) => !prev)}
+          title="Highlight headings & bullet points"
+        >
+          <Highlighter className="w-4 h-4" />
+        </Button>
+
         {/* Annotation Mode Toggle */}
         <Button
           variant={annotationMode ? "default" : "ghost"}
@@ -727,6 +738,7 @@ const MarkdownEditor = ({
         >
           <PenTool className="w-4 h-4" />
         </Button>
+
 
         <div className="flex-1" />
 
@@ -978,7 +990,7 @@ const MarkdownEditor = ({
         {isPreview ? (
           <div className="h-full overflow-auto relative" style={getPatternStyle(paperPattern)}>
             <div className="w-full h-full">
-              <div ref={contentRef} className="p-4 prose prose-sm max-w-none dark:prose-invert min-h-full relative">
+              <div ref={contentRef} className={cn("p-4 prose prose-sm max-w-none dark:prose-invert min-h-full relative", highlightStyle && "prose-highlight")}>
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm, remarkMath]}
                   rehypePlugins={[rehypeKatex]}
