@@ -297,16 +297,10 @@ const FoldersSidebar = () => {
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div
-                className="border-l border-border/60 ml-[10px]"
-                style={{ marginLeft: 10 + depth * 14 }}
-              >
-                {node.children.map((child) => (
-                  <div key={child.id} style={{ marginLeft: -(10 + depth * 14) }}>
-                    {renderNode(child, depth + 1)}
-                  </div>
-                ))}
+              <div className="space-y-0.5">
+                {node.children.map((child) => renderNode(child, depth + 1))}
               </div>
+
             </motion.div>
           )}
         </AnimatePresence>
