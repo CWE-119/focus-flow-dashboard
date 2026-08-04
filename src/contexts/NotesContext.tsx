@@ -201,34 +201,45 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Delete folder (and its notes via backend cascade)
+  // Delete folder, its subfolders and their notes (backend cascades too)
   const deleteFolder = async (id: string) => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/folders/${id}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete folder");
-      
-      setFolders((prev) => prev.filter((f) => getFolderId(f) !== normalizeId(id)));
-      setAllNotes((prev) => prev.filter((n) => {
-        return getNoteFolderId(n) !== normalizeId(id);
-      }));
-      
-      // If the deleted folder was selected, clear selection
-      if (normalizeId(selectedFolderId) === normalizeId(id)) {
+
+      // Collect the folder and all of its descendants
+      const removedIds = new Set<string>([normalizeId(id)]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        folders.forEach((f) => {
+          const fid = getFolderId(f);
+          const parent = normalizeId(f.parentId as string | number | null);
+          if (parent && removedIds.has(parent) && !removedIds.has(fid)) {
+            removedIds.add(fid);
+            changed = true;
+          }
+        });
+      }
+
+      setFolders((prev) => prev.filter((f) => !removedIds.has(getFolderId(f))));
+      setAllNotes((prev) => prev.filter((n) => !removedIds.has(getNoteFolderId(n))));
+
+      // If a removed folder was selected, clear selection
+      if (removedIds.has(normalizeId(selectedFolderId))) {
         setSelectedFolderId(null);
         setSelectedNoteId(null);
         setNotes([]);
       } else {
-        // Remove notes from the deleted folder from state
-        setNotes((prev) => prev.filter((n) => {
-          return getNoteFolderId(n) !== normalizeId(id);
-        }));
+        setNotes((prev) => prev.filter((n) => !removedIds.has(getNoteFolderId(n))));
       }
     } catch (error) {
       console.error("Error deleting folder:", error);
     }
   };
+
 
   // Select folder
   const selectFolder = (id: string | null) => {
