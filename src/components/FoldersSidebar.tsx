@@ -146,6 +146,137 @@ const FoldersSidebar = () => {
     setDeleteConfirmId(null);
   };
 
+  const renderNode = (node: TreeNode, depth: number) => {
+    const isSelected = selectedFolderId === node.id;
+    const hasChildren = node.children.length > 0;
+    const isOpen = hasChildren && !collapsed[node.id];
+    const count = totalSubtreeCount(node);
+
+    return (
+      <div key={node.id}>
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: 2 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "group flex items-center gap-1 rounded-md pr-1 py-1 cursor-pointer transition-colors border border-transparent",
+            isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-muted/60"
+          )}
+          style={{ paddingLeft: 4 + depth * 14 }}
+          onClick={() => selectFolder(node.id)}
+        >
+          <button
+            className={cn(
+              "h-4 w-4 flex items-center justify-center flex-shrink-0 text-muted-foreground transition-transform",
+              !hasChildren && "opacity-0 pointer-events-none",
+              isOpen && "rotate-90"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollapsed((prev) => ({ ...prev, [node.id]: !collapsed[node.id] }));
+            }}
+            aria-label={isOpen ? "Collapse folder" : "Expand folder"}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+
+          {isSelected || isOpen ? (
+            <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: node.color || undefined }} />
+          ) : (
+            <FolderIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: node.color || undefined }} />
+          )}
+
+          {editingId === node.id ? (
+            <div className="flex items-center gap-1 flex-1" onClick={(e) => e.stopPropagation()}>
+              <Input
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleUpdateFolder(node.id)}
+                className="h-6 text-xs flex-1"
+                autoFocus
+              />
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateFolder(node.id)}>
+                <Check className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <span className="text-xs font-body truncate flex-1">{node.name}</span>
+              <span className="text-[10px] text-muted-foreground tabular-nums group-hover:hidden">
+                {count || ""}
+              </span>
+              <div className="hidden group-hover:flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  title="New subfolder"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParentForNew(node.id);
+                    setIsCreating(true);
+                  }}
+                >
+                  <FolderPlus className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  title="Rename"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(node.id);
+                    setEditingName(node.name);
+                  }}
+                >
+                  <Edit2 className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-destructive hover:text-destructive"
+                  title="Delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmId(node.id);
+                  }}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            </>
+          )}
+        </motion.div>
+
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              key={`${node.id}-children`}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden"
+            >
+              <div className="space-y-0.5">
+                {node.children.map((child) => renderNode(child, depth + 1))}
+              </div>
+
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const parentName = parentForNew
+    ? folders.find((f) => getFolderId(f) === parentForNew)?.name
+    : null;
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
