@@ -6,6 +6,7 @@ interface Folder {
   id?: string | number;
   name: string;
   color?: string | null;
+  parentId?: string | number | null;
   createdAt?: Date;
 }
 
@@ -17,10 +18,12 @@ interface Note {
   folderId: string | number | { _id?: string | number; id?: string | number }; // Can be populated or just an ID
   revision?: number;
   pinned?: boolean;
+  important?: boolean;
   lastViewedAt?: string | Date | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
+
 
 interface NoteVersion {
   id: string | number;
@@ -48,7 +51,7 @@ interface NotesContextType {
   selectedNoteId: string | null;
   
   // Folder operations
-  createFolder: (name: string, color: string) => Promise<Folder | null>;
+  createFolder: (name: string, color: string, parentId?: string | null) => Promise<Folder | null>;
   updateFolder: (id: string, updates: Partial<Folder>) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   selectFolder: (id: string | null) => void;
@@ -59,6 +62,8 @@ interface NotesContextType {
   createNoteInFolder: (folderId: string, title: string, content: string) => Promise<Note | null>;
   updateNote: (id: string, updates: Partial<Note>) => Promise<Note | null>;
   toggleNotePinned: (id: string, pinned: boolean) => Promise<Note | null>;
+  toggleNoteImportant: (id: string, important: boolean) => Promise<Note | null>;
+
   deleteNote: (id: string) => Promise<void>;
   selectNote: (id: string | null) => void;
   getSelectedNote: () => Note | null;
