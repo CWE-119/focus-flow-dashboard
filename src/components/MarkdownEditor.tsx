@@ -196,6 +196,10 @@ const MarkdownEditor = ({
     const saved = localStorage.getItem("editor-paper-pattern");
     return (saved as PaperPattern) || "none";
   });
+  const [highlightStyle, setHighlightStyle] = useState<boolean>(
+    () => localStorage.getItem("editor-highlight-style") === "true"
+  );
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const titleChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -260,6 +264,11 @@ const MarkdownEditor = ({
   useEffect(() => {
     localStorage.setItem("editor-paper-pattern", paperPattern);
   }, [paperPattern]);
+
+  useEffect(() => {
+    localStorage.setItem("editor-highlight-style", String(highlightStyle));
+  }, [highlightStyle]);
+
 
   useEffect(() => {
     let cancelled = false;
