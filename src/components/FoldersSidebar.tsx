@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useNotes } from "@/contexts/NotesContext";
-import Folder from "@/components/Folder";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,7 +9,18 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Check, X, Search } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Check,
+  X,
+  Search,
+  ChevronRight,
+  FolderPlus,
+  Folder as FolderIcon,
+  FolderOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { getFolderId, getNoteFolderId } from "@/lib/note-links";
@@ -63,76 +73,99 @@ const folderColors = [
   "#D2D0A0",
 
   // Neutral / Dark
-  "#2C2C2C"
+  "#2C2C2C",
 ];
 
-const FOLDER_ROW_HEIGHT = 128;
-const FOLDER_OVERSCAN = 5;
+interface TreeNode {
+  id: string;
+  name: string;
+  color?: string | null;
+  children: TreeNode[];
+}
 
 const FoldersSidebar = () => {
-  const { 
-    folders, 
-    notes,
-    selectedFolderId, 
-    selectedNoteId,
-    selectFolder, 
-    createFolder, 
-    updateFolder, 
-    deleteFolder
+  const {
+    folders,
+    allNotes,
+    selectedFolderId,
+    selectFolder,
+    createFolder,
+    updateFolder,
+    deleteFolder,
   } = useNotes();
 
   const [isCreating, setIsCreating] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedColor, setSelectedColor] = useState(folderColors[0]);
+  const [parentForNew, setParentForNew] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [scrollTop, setScrollTop] = useState(0);
   const [folderQuery, setFolderQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const noteCountsByFolder = useMemo(() => {
     const counts = new Map<string, number>();
-    notes.forEach((note) => {
+    allNotes.forEach((note) => {
       const folderId = getNoteFolderId(note);
       if (!folderId) return;
       counts.set(folderId, (counts.get(folderId) || 0) + 1);
     });
     return counts;
-  }, [notes]);
+  }, [allNotes]);
 
-  const displayFolders = useMemo(() => {
+  const tree = useMemo<TreeNode[]>(() => {
     const q = folderQuery.trim().toLowerCase();
-    if (!q) return folders;
-    return folders.filter((f) => f.name.toLowerCase().includes(q));
+    const nodes = new Map<string, TreeNode>();
+    folders.forEach((folder) => {
+      nodes.set(getFolderId(folder), {
+        id: getFolderId(folder),
+        name: folder.name,
+        color: folder.color,
+        children: [],
+      });
+    });
+
+    const roots: TreeNode[] = [];
+    folders.forEach((folder) => {
+      const id = getFolderId(folder);
+      const node = nodes.get(id)!;
+      const parentId = folder.parentId == null ? "" : String(folder.parentId);
+      const parent = parentId ? nodes.get(parentId) : undefined;
+      if (parent && parent.id !== id) parent.children.push(node);
+      else roots.push(node);
+    });
+
+    if (!q) return roots;
+
+    // Keep nodes matching the query, plus their ancestors
+    const filter = (list: TreeNode[]): TreeNode[] =>
+      list
+        .map((node) => {
+          const children = filter(node.children);
+          const matches = node.name.toLowerCase().includes(q);
+          if (matches || children.length) return { ...node, children };
+          return null;
+        })
+        .filter(Boolean) as TreeNode[];
+
+    return filter(roots);
   }, [folders, folderQuery]);
 
-  const visibleFolders = useMemo(() => {
-    const viewportHeight = 760;
-    const startIndex = Math.max(0, Math.floor(scrollTop / FOLDER_ROW_HEIGHT) - FOLDER_OVERSCAN);
-    const endIndex = Math.min(
-      displayFolders.length,
-      Math.ceil((scrollTop + viewportHeight) / FOLDER_ROW_HEIGHT) + FOLDER_OVERSCAN
-    );
-
-    return displayFolders.slice(startIndex, endIndex).map((folder, offset) => ({
-      folder,
-      index: startIndex + offset,
-    }));
-  }, [displayFolders, scrollTop]);
-
-  const handleFolderClick = (folderId: string) => {
-    selectFolder(folderId);
-  };
+  const totalSubtreeCount = (node: TreeNode): number =>
+    (noteCountsByFolder.get(node.id) || 0) +
+    node.children.reduce((sum, child) => sum + totalSubtreeCount(child), 0);
 
   const handleCreateFolder = async () => {
-    if (newFolderName.trim()) {
-      const folder = await createFolder(newFolderName.trim(), selectedColor);
-      if (folder) {
-        selectFolder(getFolderId(folder));
-      }
-      setNewFolderName("");
-      setIsCreating(false);
+    if (!newFolderName.trim()) return;
+    const folder = await createFolder(newFolderName.trim(), selectedColor, parentForNew);
+    if (folder) {
+      if (parentForNew) setCollapsed((prev) => ({ ...prev, [parentForNew]: false }));
+      selectFolder(getFolderId(folder));
     }
+    setNewFolderName("");
+    setParentForNew(null);
+    setIsCreating(false);
   };
 
   const handleUpdateFolder = async (id: string) => {
@@ -148,6 +181,143 @@ const FoldersSidebar = () => {
     setDeleteConfirmId(null);
   };
 
+  const renderNode = (node: TreeNode, depth: number) => {
+    const isSelected = selectedFolderId === node.id;
+    const hasChildren = node.children.length > 0;
+    const isOpen = hasChildren && !collapsed[node.id];
+    const count = totalSubtreeCount(node);
+
+    return (
+      <div key={node.id}>
+        <motion.div
+          layout
+          initial={{ opacity: 0, y: 2 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "group flex items-center gap-1 rounded-md pr-1 py-1 cursor-pointer transition-colors border border-transparent",
+            isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-muted/60"
+          )}
+          style={{ paddingLeft: 4 + depth * 14 }}
+          onClick={() => selectFolder(node.id)}
+        >
+          <button
+            className={cn(
+              "h-4 w-4 flex items-center justify-center flex-shrink-0 text-muted-foreground transition-transform",
+              !hasChildren && "opacity-0 pointer-events-none",
+              isOpen && "rotate-90"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollapsed((prev) => ({ ...prev, [node.id]: !collapsed[node.id] }));
+            }}
+            aria-label={isOpen ? "Collapse folder" : "Expand folder"}
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+
+          {isSelected || isOpen ? (
+            <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: node.color || undefined }} />
+          ) : (
+            <FolderIcon className="w-3.5 h-3.5 flex-shrink-0" style={{ color: node.color || undefined }} />
+          )}
+
+          {editingId === node.id ? (
+            <div className="flex items-center gap-1 flex-1" onClick={(e) => e.stopPropagation()}>
+              <Input
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleUpdateFolder(node.id)}
+                className="h-6 text-xs flex-1"
+                autoFocus
+              />
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateFolder(node.id)}>
+                <Check className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <span className="text-xs font-body truncate flex-1">{node.name}</span>
+              <span className="text-[10px] text-muted-foreground tabular-nums group-hover:hidden">
+                {count || ""}
+              </span>
+              <div className="hidden group-hover:flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  title="New subfolder"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setParentForNew(node.id);
+                    setIsCreating(true);
+                  }}
+                >
+                  <FolderPlus className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  title="Rename"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingId(node.id);
+                    setEditingName(node.name);
+                  }}
+                >
+                  <Edit2 className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-destructive hover:text-destructive"
+                  title="Delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmId(node.id);
+                  }}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
+            </>
+          )}
+        </motion.div>
+
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              key={`${node.id}-children`}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden"
+            >
+              <div
+                className="border-l border-border/60 ml-[10px]"
+                style={{ marginLeft: 10 + depth * 14 }}
+              >
+                {node.children.map((child) => (
+                  <div key={child.id} style={{ marginLeft: -(10 + depth * 14) }}>
+                    {renderNode(child, depth + 1)}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const parentName = parentForNew
+    ? folders.find((f) => getFolderId(f) === parentForNew)?.name
+    : null;
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -161,7 +331,10 @@ const FoldersSidebar = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setIsCreating(true)}
+          onClick={() => {
+            setParentForNew(null);
+            setIsCreating(true);
+          }}
           title="New Folder"
         >
           <Plus className="w-4 h-4" />
@@ -179,131 +352,24 @@ const FoldersSidebar = () => {
         />
       </div>
 
-      <div
-        className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain pt-1 pr-1"
-        onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
-      >
-        <div
-          className="relative"
-          style={{ height: displayFolders.length * FOLDER_ROW_HEIGHT }}
-        >
-          <AnimatePresence mode="popLayout">
-            {visibleFolders.map(({ folder, index }) => {
-              const folderId = getFolderId(folder);
-              const noteCount = noteCountsByFolder.get(folderId) || 0;
-              
-              return (
-                <motion.div
-                  key={folderId}
-                  className="absolute left-0 right-0"
-                  style={{ top: index * FOLDER_ROW_HEIGHT, height: FOLDER_ROW_HEIGHT - 6 }}
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.95, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  {/* Folder Card */}
-                  <div 
-                    className={cn(
-                      "flex h-full flex-col items-center gap-1 rounded-lg p-3 cursor-pointer transition-colors group",
-                      selectedFolderId === folderId
-                        ? "bg-muted" 
-                        : "hover:bg-muted/50"
-                    )}
-                    onClick={() => handleFolderClick(folderId)}
-                  >
-                    {/* Top row with count and actions */}
-                    <div className="w-full flex items-center justify-between">
-                      {/* Note count badge */}
-                      <span className="text-xs text-muted-foreground">
-                        {noteCount}
-                      </span>
-
-                      {/* Actions */}
-                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingId(folderId);
-                            setEditingName(folder.name);
-                          }}
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-5 w-5 text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmId(folderId);
-                          }}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Folder Icon */}
-                    <div className="flex-shrink-0 my-1">
-                      <Folder
-                        color={folder.color}
-                        size={0.5}
-                        items={[]}
-                        isOpen={selectedFolderId === folderId}
-                      />
-                    </div>
-                    
-                    {/* Folder Name at bottom */}
-                    <div className="w-full text-center">
-                      {editingId === folderId ? (
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Input
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleUpdateFolder(folderId)}
-                            className="h-5 text-xs flex-1 text-center"
-                            autoFocus
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 flex-shrink-0"
-                            onClick={() => handleUpdateFolder(folderId)}
-                          >
-                            <Check className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 flex-shrink-0"
-                            onClick={() => setEditingId(null)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs font-body truncate block">
-                          {folder.name}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+      {/* Tree */}
+      <div className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain pt-1 pr-1 space-y-0.5">
+        {tree.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">
+            {folderQuery ? "No matching folders" : "No folders yet"}
+          </p>
+        ) : (
+          tree.map((node) => renderNode(node, 0))
+        )}
       </div>
 
       {/* Create Folder Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Folder</DialogTitle>
+            <DialogTitle>
+              {parentName ? `New subfolder in “${parentName}”` : "Create New Folder"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input
@@ -343,14 +409,14 @@ const FoldersSidebar = () => {
             <DialogTitle>Delete Folder?</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground">
-            This will delete the folder and all its notes. This action cannot be undone.
+            This will delete the folder, all of its subfolders and their notes. This action cannot be undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={() => deleteConfirmId && handleDeleteFolder(deleteConfirmId)}
             >
               Delete
