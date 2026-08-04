@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useNotes } from "@/contexts/NotesContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, FileText, Trash2, Pin, PinOff, Search, FolderOpen } from "lucide-react";
+import { Plus, FileText, Trash2, Pin, PinOff, Search, FolderOpen, Star, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNoteFolderId, getNoteId } from "@/lib/note-links";
 
@@ -12,12 +12,16 @@ interface NoteRowProps {
   snippet: string;
   updatedAt?: string | Date;
   pinned?: boolean;
+  important?: boolean;
+  isRecent?: boolean;
   isSelected: boolean;
   onClick: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onToggleImportant: () => void;
   index: number;
 }
+
 
 const formatUpdated = (value?: string | Date) => {
   if (!value) return "";
