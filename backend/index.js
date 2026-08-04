@@ -64,10 +64,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
       folderId INTEGER,
       revision INTEGER DEFAULT 1,
       pinned INTEGER DEFAULT 0,
+      important INTEGER DEFAULT 0,
       lastViewedAt DATETIME,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
 
     CREATE TABLE IF NOT EXISTS note_versions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,8 +115,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       color TEXT,
+      parentId INTEGER,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
 
     CREATE TABLE IF NOT EXISTS history (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
