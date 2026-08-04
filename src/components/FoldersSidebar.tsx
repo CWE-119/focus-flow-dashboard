@@ -21,6 +21,18 @@ import {
   Folder as FolderIcon,
   FolderOpen,
 } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Check,
+  X,
+  Search,
+  ChevronRight,
+  FolderPlus,
+  Folder as FolderIcon,
+  FolderOpen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { getFolderId, getNoteFolderId } from "@/lib/note-links";
@@ -82,8 +94,25 @@ interface TreeNode {
   color?: string | null;
   children: TreeNode[];
 }
+  "#2C2C2C",
+];
+
+interface TreeNode {
+  id: string;
+  name: string;
+  color?: string | null;
+  children: TreeNode[];
+}
 
 const FoldersSidebar = () => {
+  const {
+    folders,
+    allNotes,
+    selectedFolderId,
+    selectFolder,
+    createFolder,
+    updateFolder,
+    deleteFolder,
   const {
     folders,
     allNotes,
@@ -98,14 +127,17 @@ const FoldersSidebar = () => {
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedColor, setSelectedColor] = useState(folderColors[0]);
   const [parentForNew, setParentForNew] = useState<string | null>(null);
+  const [parentForNew, setParentForNew] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [folderQuery, setFolderQuery] = useState("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const noteCountsByFolder = useMemo(() => {
     const counts = new Map<string, number>();
+    allNotes.forEach((note) => {
     allNotes.forEach((note) => {
       const folderId = getNoteFolderId(note);
       if (!folderId) return;
@@ -113,9 +145,45 @@ const FoldersSidebar = () => {
     });
     return counts;
   }, [allNotes]);
+  }, [allNotes]);
 
   const tree = useMemo<TreeNode[]>(() => {
+  const tree = useMemo<TreeNode[]>(() => {
     const q = folderQuery.trim().toLowerCase();
+    const nodes = new Map<string, TreeNode>();
+    folders.forEach((folder) => {
+      nodes.set(getFolderId(folder), {
+        id: getFolderId(folder),
+        name: folder.name,
+        color: folder.color,
+        children: [],
+      });
+    });
+
+    const roots: TreeNode[] = [];
+    folders.forEach((folder) => {
+      const id = getFolderId(folder);
+      const node = nodes.get(id)!;
+      const parentId = folder.parentId == null ? "" : String(folder.parentId);
+      const parent = parentId ? nodes.get(parentId) : undefined;
+      if (parent && parent.id !== id) parent.children.push(node);
+      else roots.push(node);
+    });
+
+    if (!q) return roots;
+
+    // Keep nodes matching the query, plus their ancestors
+    const filter = (list: TreeNode[]): TreeNode[] =>
+      list
+        .map((node) => {
+          const children = filter(node.children);
+          const matches = node.name.toLowerCase().includes(q);
+          if (matches || children.length) return { ...node, children };
+          return null;
+        })
+        .filter(Boolean) as TreeNode[];
+
+    return filter(roots);
     const nodes = new Map<string, TreeNode>();
     folders.forEach((folder) => {
       nodes.set(getFolderId(folder), {
@@ -155,8 +223,20 @@ const FoldersSidebar = () => {
   const totalSubtreeCount = (node: TreeNode): number =>
     (noteCountsByFolder.get(node.id) || 0) +
     node.children.reduce((sum, child) => sum + totalSubtreeCount(child), 0);
+  const totalSubtreeCount = (node: TreeNode): number =>
+    (noteCountsByFolder.get(node.id) || 0) +
+    node.children.reduce((sum, child) => sum + totalSubtreeCount(child), 0);
 
   const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    const folder = await createFolder(newFolderName.trim(), selectedColor, parentForNew);
+    if (folder) {
+      if (parentForNew) setCollapsed((prev) => ({ ...prev, [parentForNew]: false }));
+      selectFolder(getFolderId(folder));
+    }
+    setNewFolderName("");
+    setParentForNew(null);
+    setIsCreating(false);
     if (!newFolderName.trim()) return;
     const folder = await createFolder(newFolderName.trim(), selectedColor, parentForNew);
     if (folder) {
@@ -297,10 +377,16 @@ const FoldersSidebar = () => {
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div className="space-y-0.5">
-                {node.children.map((child) => renderNode(child, depth + 1))}
+              <div
+                className="border-l border-border/60 ml-[10px]"
+                style={{ marginLeft: 10 + depth * 14 }}
+              >
+                {node.children.map((child) => (
+                  <div key={child.id} style={{ marginLeft: -(10 + depth * 14) }}>
+                    {renderNode(child, depth + 1)}
+                  </div>
+                ))}
               </div>
-
             </motion.div>
           )}
         </AnimatePresence>
@@ -325,6 +411,10 @@ const FoldersSidebar = () => {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => {
+            setParentForNew(null);
+            setIsCreating(true);
+          }}
           onClick={() => {
             setParentForNew(null);
             setIsCreating(true);
@@ -355,12 +445,24 @@ const FoldersSidebar = () => {
         ) : (
           tree.map((node) => renderNode(node, 0))
         )}
+      {/* Tree */}
+      <div className="sidebar-scroll flex-1 overflow-y-auto overscroll-contain pt-1 pr-1 space-y-0.5">
+        {tree.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">
+            {folderQuery ? "No matching folders" : "No folders yet"}
+          </p>
+        ) : (
+          tree.map((node) => renderNode(node, 0))
+        )}
       </div>
 
       {/* Create Folder Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent>
           <DialogHeader>
+            <DialogTitle>
+              {parentName ? `New subfolder in “${parentName}”` : "Create New Folder"}
+            </DialogTitle>
             <DialogTitle>
               {parentName ? `New subfolder in “${parentName}”` : "Create New Folder"}
             </DialogTitle>
@@ -404,11 +506,14 @@ const FoldersSidebar = () => {
           </DialogHeader>
           <p className="text-muted-foreground">
             This will delete the folder, all of its subfolders and their notes. This action cannot be undone.
+            This will delete the folder, all of its subfolders and their notes. This action cannot be undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
               Cancel
             </Button>
+            <Button
+              variant="destructive"
             <Button
               variant="destructive"
               onClick={() => deleteConfirmId && handleDeleteFolder(deleteConfirmId)}
