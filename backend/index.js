@@ -242,6 +242,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
       if (errFolders) console.warn('⚠ Could not ensure folders.color:', errFolders.message);
       else if (addedFolders) console.log('✓ Added missing column folders.color');
 
+      ensureColumn('folders', 'parentId INTEGER', 'parentId', (errParent, addedParent) => {
+        if (errParent) console.warn('⚠ Could not ensure folders.parentId:', errParent.message);
+        else if (addedParent) console.log('✓ Added missing column folders.parentId');
+      });
+
+
       // Ensure history.createdAt (can't add column with non-constant default in SQLite)
       ensureColumn('history', 'createdAt DATETIME', 'createdAt', (err, added) => {
         if (err) console.warn('⚠ Could not ensure history.createdAt:', err.message);
@@ -283,8 +289,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
           const noteColumns = [
             ['revision INTEGER DEFAULT 1', 'revision'],
             ['pinned INTEGER DEFAULT 0', 'pinned'],
+            ['important INTEGER DEFAULT 0', 'important'],
             ['lastViewedAt DATETIME', 'lastViewedAt'],
           ];
+
           let noteIdx = 0;
           function ensureNextNoteCol(done) {
             if (noteIdx >= noteColumns.length) {
