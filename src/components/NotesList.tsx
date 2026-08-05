@@ -15,10 +15,13 @@ interface NoteRowProps {
   important?: boolean;
   isRecent?: boolean;
   isSelected: boolean;
+  tags?: string[];
   onClick: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
   onToggleImportant: () => void;
+  onDragStart?: (event: React.DragEvent) => void;
+  onTagClick?: (tag: string) => void;
   index: number;
 }
 
