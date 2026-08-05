@@ -54,7 +54,9 @@ interface NotesContextType {
   
   // Folder operations
   createFolder: (name: string, color: string, parentId?: string | null) => Promise<Folder | null>;
-  updateFolder: (id: string, updates: Partial<Folder>) => Promise<void>;
+  updateFolder: (id: string, updates: Partial<Folder>) => Promise<{ ok: boolean; error?: string }>;
+  renameFolder: (id: string, name: string) => Promise<{ ok: boolean; error?: string }>;
+  reorderFolders: (orderedIds: string[]) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   selectFolder: (id: string | null) => void;
   getSelectedFolder: () => Folder | null;
@@ -65,6 +67,10 @@ interface NotesContextType {
   updateNote: (id: string, updates: Partial<Note>) => Promise<Note | null>;
   toggleNotePinned: (id: string, pinned: boolean) => Promise<Note | null>;
   toggleNoteImportant: (id: string, important: boolean) => Promise<Note | null>;
+  updateNoteTags: (id: string, tags: string[]) => Promise<Note | null>;
+  moveNoteToFolder: (id: string, folderId: string) => Promise<Note | null>;
+  allTags: string[];
+
 
   deleteNote: (id: string) => Promise<void>;
   selectNote: (id: string | null) => void;
