@@ -207,6 +207,7 @@ const MarkdownEditor = ({
   const [highlightStyle, setHighlightStyle] = useState<boolean>(
     () => localStorage.getItem("editor-highlight-style") === "true"
   );
+  const [tagDraft, setTagDraft] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
