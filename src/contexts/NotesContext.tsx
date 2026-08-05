@@ -197,22 +197,75 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Update folder
-  const updateFolder = async (id: string, updates: Partial<Folder>) => {
+  const updateFolder = async (id: string, updates: Partial<Folder>): Promise<{ ok: boolean; error?: string }> => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/folders/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
-      if (!response.ok) throw new Error("Failed to update folder");
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        return { ok: false, error: payload.error || "Failed to update folder" };
+      }
       const updatedFolder = await response.json();
       setFolders((prev) =>
-        prev.map((f) => (getFolderId(f) === normalizeId(id) ? updatedFolder : f))
+        sortFolders(prev.map((f) => (getFolderId(f) === normalizeId(id) ? updatedFolder : f)))
       );
+      return { ok: true };
     } catch (error) {
       console.error("Error updating folder:", error);
+      return { ok: false, error: "Failed to update folder" };
     }
   };
+
+  const renameFolder = async (id: string, name: string): Promise<{ ok: boolean; error?: string }> => {
+    const trimmed = name.trim();
+    if (!trimmed) return { ok: false, error: "Folder name cannot be empty" };
+    if (trimmed.length > 60) return { ok: false, error: "Folder name must be 60 characters or fewer" };
+
+    const target = folders.find((f) => getFolderId(f) === normalizeId(id));
+    const parentId = normalizeId(target?.parentId as string | number | null);
+    const duplicate = folders.some(
+      (f) =>
+        getFolderId(f) !== normalizeId(id) &&
+        normalizeId(f.parentId as string | number | null) === parentId &&
+        f.name.trim().toLowerCase() === trimmed.toLowerCase()
+    );
+    if (duplicate) return { ok: false, error: "A folder with that name already exists here" };
+
+    const result = await updateFolder(id, { name: trimmed });
+    if (result.ok) await refreshNotes();
+    return result;
+  };
+
+  const reorderFolders = async (orderedIds: string[]) => {
+    // Optimistic local reorder of top-level folders
+    setFolders((prev) => {
+      const positions = new Map(orderedIds.map((id, index) => [normalizeId(id), index]));
+      return sortFolders(
+        prev.map((f) => {
+          const next = positions.get(getFolderId(f));
+          return next === undefined ? f : { ...f, position: next };
+        })
+      );
+    });
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/folders/reorder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: orderedIds }),
+      });
+      if (!response.ok) throw new Error("Failed to reorder folders");
+      const data = await response.json();
+      setFolders(sortFolders(data));
+    } catch (error) {
+      console.error("Error reordering folders:", error);
+      await fetchFolders();
+    }
+  };
+
 
   // Delete folder, its subfolders and their notes (backend cascades too)
   const deleteFolder = async (id: string) => {
