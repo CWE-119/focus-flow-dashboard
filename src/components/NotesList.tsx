@@ -274,15 +274,48 @@ const NotesList = () => {
       </div>
 
       {/* Search */}
-      <div className="relative mb-3">
+      <div className="relative mb-2">
         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search notes..."
+          placeholder="Search notes or #tag..."
           className="h-8 text-xs pl-8"
         />
       </div>
+
+      {/* Tag filters */}
+      {folderTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 mb-3">
+          {folderTags.slice(0, 12).map((tag) => {
+            const active = activeTag?.toLowerCase() === tag.toLowerCase();
+            return (
+              <button
+                key={tag}
+                onClick={() => setActiveTag(active ? null : tag)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium border transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/60 text-muted-foreground border-transparent hover:border-primary/40"
+                )}
+              >
+                <Tag className="w-2.5 h-2.5" />
+                {tag}
+              </button>
+            );
+          })}
+          {activeTag && (
+            <button
+              onClick={() => setActiveTag(null)}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-2.5 h-2.5" /> Clear
+            </button>
+          )}
+        </div>
+      )}
+
 
       {/* Notes List */}
       <div
