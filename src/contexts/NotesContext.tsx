@@ -396,6 +396,27 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateNoteTags = async (id: string, tags: string[]): Promise<Note | null> => {
+    const cleaned: string[] = [];
+    tags.forEach((tag) => {
+      const normalized = tag.trim().replace(/^#/, "");
+      if (normalized && !cleaned.some((t) => t.toLowerCase() === normalized.toLowerCase())) {
+        cleaned.push(normalized);
+      }
+    });
+    return updateNote(id, { tags: cleaned });
+  };
+
+  const moveNoteToFolder = async (id: string, folderId: string): Promise<Note | null> => {
+    const note = getNoteById(id);
+    if (!note || getNoteFolderId(note) === normalizeId(folderId)) return note;
+    return updateNote(id, { folderId });
+  };
+
+  const allTags = Array.from(
+    new Set(allNotes.flatMap((note) => note.tags || []).map((tag) => tag.trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
   const toggleNoteImportant = async (id: string, important: boolean): Promise<Note | null> => {
     return updateNote(id, { important });
   };
