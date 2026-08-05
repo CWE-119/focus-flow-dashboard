@@ -613,7 +613,32 @@ app.delete('/api/todos/:id', (req, res) => {
   });
 });
 
-const mapNoteRow = (row) => row ? ({ ...row, _id: row.id, pinned: Boolean(row.pinned), important: Boolean(row.important) }) : row;
+const parseTags = (value) => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.map((t) => String(t));
+  } catch {
+    // fall through to comma-separated parsing
+  }
+  return String(value).split(',').map((t) => t.trim()).filter(Boolean);
+};
+
+const serializeTags = (value) => {
+  const list = Array.isArray(value)
+    ? value
+    : String(value || '').split(',');
+  const cleaned = [];
+  list.forEach((tag) => {
+    const normalized = String(tag).trim().replace(/^#/, '');
+    if (normalized && !cleaned.some((t) => t.toLowerCase() === normalized.toLowerCase())) {
+      cleaned.push(normalized);
+    }
+  });
+  return JSON.stringify(cleaned.slice(0, 24));
+};
+
+const mapNoteRow = (row) => row ? ({ ...row, _id: row.id, pinned: Boolean(row.pinned), important: Boolean(row.important), tags: parseTags(row.tags) }) : row;
 
 const normalizeTitle = (value = '') =>
   String(value)
