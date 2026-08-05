@@ -198,20 +198,45 @@ const NotesList = () => {
 
   const folder = getSelectedFolder();
   const [query, setQuery] = useState("");
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  const folderNotes = useMemo(
+    () => notes.filter((note) => getNoteFolderId(note) === String(selectedFolderId)),
+    [notes, selectedFolderId]
+  );
+
+  const folderTags = useMemo(() => {
+    const set = new Set<string>();
+    folderNotes.forEach((note) => (note.tags || []).forEach((tag) => tag && set.add(tag)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [folderNotes]);
+
   const filteredNotes = useMemo(() => {
-    const inFolder = notes.filter(
-      (note) => getNoteFolderId(note) === String(selectedFolderId)
-    );
-    const q = query.trim().toLowerCase();
-    if (!q) return inFolder;
-    return inFolder.filter(
+    let list = folderNotes;
+    if (activeTag) {
+      list = list.filter((n) =>
+        (n.tags || []).some((tag) => tag.toLowerCase() === activeTag.toLowerCase())
+      );
+    }
+    const raw = query.trim().toLowerCase();
+    if (!raw) return list;
+
+    // "#tag" style queries search tags only
+    if (raw.startsWith("#")) {
+      const tagQuery = raw.slice(1);
+      if (!tagQuery) return list;
+      return list.filter((n) => (n.tags || []).some((tag) => tag.toLowerCase().includes(tagQuery)));
+    }
+
+    return list.filter(
       (n) =>
-        n.title.toLowerCase().includes(q) ||
-        (n.content || "").toLowerCase().includes(q)
+        n.title.toLowerCase().includes(raw) ||
+        (n.content || "").toLowerCase().includes(raw) ||
+        (n.tags || []).some((tag) => tag.toLowerCase().includes(raw))
     );
-  }, [notes, selectedFolderId, query]);
+  }, [folderNotes, query, activeTag]);
+
 
   const handleCreateNote = async () => {
     if (selectedFolderId) await createNote("Untitled", "");
