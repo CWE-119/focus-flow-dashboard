@@ -567,6 +567,36 @@ const MarkdownEditor = ({
             {title}
           </h2>
         )}
+
+        {onTagsChange && (
+          <div className="flex flex-wrap items-center gap-1">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+              >
+                #{tag}
+                <button onClick={() => removeTag(tag)} title="Remove tag" className="hover:text-destructive">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
+            <Input
+              value={tagDraft}
+              onChange={(e) => setTagDraft(e.target.value)}
+              onBlur={addTagFromDraft}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  addTagFromDraft();
+                }
+              }}
+              placeholder="add tag"
+              className="h-6 w-24 text-[10px] px-2"
+            />
+          </div>
+        )}
+
         
         <div className="ml-auto">
           <div className="flex items-center gap-2">
