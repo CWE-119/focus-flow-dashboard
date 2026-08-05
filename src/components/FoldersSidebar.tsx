@@ -401,22 +401,43 @@ const FoldersSidebar = () => {
           )}
 
           {editingId === node.id ? (
-            <div className="flex items-center gap-1 flex-1" onClick={(e) => e.stopPropagation()}>
-              <Input
-                value={editingName}
-                onChange={(e) => setEditingName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleUpdateFolder(node.id)}
-                className="h-6 text-xs flex-1"
-                autoFocus
-              />
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateFolder(node.id)}>
-                <Check className="w-3 h-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}>
-                <X className="w-3 h-3" />
-              </Button>
+            <div className="flex-1" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1">
+                <Input
+                  value={editingName}
+                  onChange={(e) => {
+                    setEditingName(e.target.value);
+                    setEditingError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleUpdateFolder(node.id);
+                    if (e.key === "Escape") {
+                      setEditingId(null);
+                      setEditingError(null);
+                    }
+                  }}
+                  className={cn("h-6 text-xs flex-1", editingError && "border-destructive")}
+                  autoFocus
+                />
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleUpdateFolder(node.id)}>
+                  <Check className="w-3 h-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    setEditingId(null);
+                    setEditingError(null);
+                  }}
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+              {editingError && <p className="text-[10px] text-destructive mt-1">{editingError}</p>}
             </div>
           ) : (
+
             <>
               <span className="text-xs font-body truncate flex-1">{node.name}</span>
               <span className="text-[10px] text-muted-foreground tabular-nums group-hover:hidden">
