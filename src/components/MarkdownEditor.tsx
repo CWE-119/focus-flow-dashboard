@@ -62,6 +62,7 @@ import {
   Lock,
   Unlock,
   Layers,
+  X,
 } from "lucide-react";
 import {
   Dialog,
