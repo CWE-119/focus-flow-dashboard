@@ -992,7 +992,7 @@ app.post('/api/notes/:id/restore/:versionId', (req, res) => {
 
 // Update note
 app.put('/api/notes/:id', (req, res) => {
-  const { title, content, folderId, pinned, important, clientUpdatedAt } = req.body;
+  const { title, content, folderId, pinned, important, tags, clientUpdatedAt } = req.body;
   db.get('SELECT * FROM notes WHERE id = ?', [req.params.id], (err, current) => {
     if (err) {
       console.error('Error fetching note before update:', err);
@@ -1010,6 +1010,7 @@ app.put('/api/notes/:id', (req, res) => {
     if (folderId !== undefined) { updates.push('folderId = ?'); values.push(folderId); }
     if (pinned !== undefined) { updates.push('pinned = ?'); values.push(pinned ? 1 : 0); }
     if (important !== undefined) { updates.push('important = ?'); values.push(important ? 1 : 0); }
+    if (tags !== undefined) { updates.push('tags = ?'); values.push(serializeTags(tags)); }
     if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
     updates.push('revision = COALESCE(revision, 1) + 1');
     updates.push('updatedAt = CURRENT_TIMESTAMP');
@@ -1051,10 +1052,10 @@ app.delete('/api/notes/:id', (req, res) => {
 });
 
 app.post('/api/notes', (req, res) => {
-  const { title, content, folderId, pinned } = req.body;
+  const { title, content, folderId, pinned, tags } = req.body;
   db.run(
-    'INSERT INTO notes (title, content, folderId, pinned) VALUES (?, ?, ?, ?)',
-    [title, content, folderId || null, pinned ? 1 : 0],
+    'INSERT INTO notes (title, content, folderId, pinned, tags) VALUES (?, ?, ?, ?, ?)',
+    [title, content, folderId || null, pinned ? 1 : 0, serializeTags(tags || [])],
     function(err) {
       if (err) {
         console.error('Error creating note:', err);
