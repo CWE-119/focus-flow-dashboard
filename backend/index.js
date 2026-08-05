@@ -1129,46 +1129,65 @@ app.post('/api/folders', (req, res) => {
   );
 });
 
-// Update folder (name, color, parentId)
+// Update folder (name, color, parentId, position)
 app.put('/api/folders/:id', (req, res) => {
-  const { name, color, parentId } = req.body;
-  const updates = [];
-  const values = [];
+  const { name, color, parentId, position } = req.body;
 
-  if (name !== undefined) {
-    updates.push('name = ?');
-    values.push(name);
+  if (name !== undefined && !String(name).trim()) {
+    return res.status(400).json({ error: 'Folder name cannot be empty' });
   }
-  if (color !== undefined) {
-    updates.push('color = ?');
-    values.push(color);
+  if (name !== undefined && String(name).trim().length > 60) {
+    return res.status(400).json({ error: 'Folder name must be 60 characters or fewer' });
   }
-  if (parentId !== undefined) {
-    if (parentId !== null && String(parentId) === String(req.params.id)) {
-      return res.status(400).json({ error: 'A folder cannot be its own parent' });
-    }
-    updates.push('parentId = ?');
-    values.push(parentId === null ? null : parentId);
+  if (parentId !== undefined && parentId !== null && String(parentId) === String(req.params.id)) {
+    return res.status(400).json({ error: 'A folder cannot be its own parent' });
   }
 
-  if (updates.length === 0) {
-    return res.status(400).json({ error: 'No fields to update' });
-  }
+  db.get('SELECT * FROM folders WHERE id = ?', [req.params.id], (errCurrent, current) => {
+    if (errCurrent) return res.status(500).json({ error: 'Failed to update folder' });
+    if (!current) return res.status(404).json({ error: 'Folder not found' });
 
-  values.push(req.params.id);
-  const sql = `UPDATE folders SET ${updates.join(', ')} WHERE id = ?`;
+    const targetParent = parentId !== undefined ? parentId : current.parentId;
 
-  db.run(sql, values, function(err) {
-    if (err) {
-      console.error('Error updating folder:', err);
-      return res.status(500).json({ error: 'Failed to update folder' });
-    }
-    db.get('SELECT * FROM folders WHERE id = ?', [req.params.id], (err2, row) => {
-      if (err2) {
-        console.error('Error fetching updated folder:', err2);
-        return res.status(500).json({ error: 'Failed to fetch updated folder' });
+    const applyUpdate = () => {
+      const updates = [];
+      const values = [];
+      if (name !== undefined) { updates.push('name = ?'); values.push(String(name).trim()); }
+      if (color !== undefined) { updates.push('color = ?'); values.push(color); }
+      if (parentId !== undefined) { updates.push('parentId = ?'); values.push(parentId === null ? null : parentId); }
+      if (position !== undefined) { updates.push('position = ?'); values.push(position === null ? null : Number(position)); }
+
+      if (updates.length === 0) {
+        return res.status(400).json({ error: 'No fields to update' });
       }
-      res.json(mapFolderRow(row) || {});
+
+      values.push(req.params.id);
+      db.run(`UPDATE folders SET ${updates.join(', ')} WHERE id = ?`, values, function(err) {
+        if (err) {
+          console.error('Error updating folder:', err);
+          return res.status(500).json({ error: 'Failed to update folder' });
+        }
+        db.get('SELECT * FROM folders WHERE id = ?', [req.params.id], (err2, row) => {
+          if (err2) return res.status(500).json({ error: 'Failed to fetch updated folder' });
+          res.json(mapFolderRow(row) || {});
+        });
+      });
+    };
+
+    if (name === undefined) return applyUpdate();
+
+    // Reject duplicate names among siblings
+    const sql = targetParent == null
+      ? 'SELECT id FROM folders WHERE parentId IS NULL AND id != ? AND LOWER(name) = LOWER(?)'
+      : 'SELECT id FROM folders WHERE parentId = ? AND id != ? AND LOWER(name) = LOWER(?)';
+    const params = targetParent == null
+      ? [req.params.id, String(name).trim()]
+      : [targetParent, req.params.id, String(name).trim()];
+
+    db.get(sql, params, (errDup, dup) => {
+      if (errDup) return res.status(500).json({ error: 'Failed to update folder' });
+      if (dup) return res.status(409).json({ error: 'A folder with that name already exists here' });
+      applyUpdate();
     });
   });
 });
