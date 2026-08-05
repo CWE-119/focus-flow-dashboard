@@ -59,6 +59,8 @@ const NotesContent = () => {
     restoreNoteVersion,
     updateNote,
     toggleNotePinned,
+    toggleNoteImportant,
+    updateNoteTags,
     selectedNoteId,
     selectedFolderId,
     createNote,
