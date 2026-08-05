@@ -298,6 +298,59 @@ const MarkdownEditor = ({
     };
   }, [getIndexedReferences, noteId, localContent]);
 
+  // Tag helpers
+  const commitTags = useCallback(
+    (next: string[]) => {
+      const cleaned: string[] = [];
+      next.forEach((tag) => {
+        const normalized = tag.trim().replace(/^#/, "");
+        if (normalized && !cleaned.some((t) => t.toLowerCase() === normalized.toLowerCase())) {
+          cleaned.push(normalized);
+        }
+      });
+      void onTagsChange?.(cleaned);
+    },
+    [onTagsChange]
+  );
+
+  const addTagFromDraft = useCallback(() => {
+    const parts = tagDraft.split(",");
+    if (!parts.some((p) => p.trim())) return;
+    commitTags([...tags, ...parts]);
+    setTagDraft("");
+  }, [commitTags, tagDraft, tags]);
+
+  const removeTag = useCallback(
+    (tag: string) => {
+      commitTags(tags.filter((t) => t.toLowerCase() !== tag.toLowerCase()));
+    },
+    [commitTags, tags]
+  );
+
+  // Global note shortcuts: Ctrl/Cmd+Shift+I important, +H highlight, +E edit/preview
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod || !e.shiftKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "i" && onToggleImportant) {
+        e.preventDefault();
+        void onToggleImportant(!important);
+      } else if (k === "h") {
+        e.preventDefault();
+        setHighlightStyle((prev) => !prev);
+      } else if (k === "e") {
+        e.preventDefault();
+        setIsPreview((prev) => {
+          if (prev) requestAnimationFrame(() => textareaRef.current?.focus());
+          return !prev;
+        });
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [important, onToggleImportant]);
+
   // Annotation keyboard shortcuts (only when annotation mode is active)
   useEffect(() => {
     if (!annotationMode) return;
