@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useNotes } from "@/contexts/NotesContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, FileText, Trash2, Pin, PinOff, Search, FolderOpen, Star, Clock } from "lucide-react";
+import { Plus, FileText, Trash2, Pin, PinOff, Search, FolderOpen, Star, Clock, Tag, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getNoteFolderId, getNoteId } from "@/lib/note-links";
 
