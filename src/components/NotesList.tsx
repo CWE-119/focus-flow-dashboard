@@ -59,10 +59,13 @@ const NoteRow = forwardRef<HTMLDivElement, NoteRowProps>(
       important,
       isRecent,
       isSelected,
+      tags,
       onClick,
       onDelete,
       onTogglePin,
       onToggleImportant,
+      onDragStart,
+      onTagClick,
       index,
     },
     ref
@@ -70,6 +73,8 @@ const NoteRow = forwardRef<HTMLDivElement, NoteRowProps>(
     <motion.div
       ref={ref}
       layout
+      draggable
+      onDragStart={onDragStart as any}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -4 }}
