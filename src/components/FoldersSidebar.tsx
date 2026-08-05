@@ -264,17 +264,46 @@ const FoldersSidebar = () => {
   };
 
   const handleUpdateFolder = async (id: string) => {
-    if (editingName.trim()) {
-      await updateFolder(id, { name: editingName.trim() });
-      setEditingId(null);
-      setEditingName("");
+    const result = await renameFolder(id, editingName);
+    if (!result.ok) {
+      setEditingError(result.error || "Could not rename folder");
+      toast.error(result.error || "Could not rename folder");
+      return;
     }
+    setEditingId(null);
+    setEditingName("");
+    setEditingError(null);
+    toast.success("Folder renamed");
+  };
+
+  const startEditing = (id: string, name: string) => {
+    setEditingId(id);
+    setEditingName(name);
+    setEditingError(null);
   };
 
   const handleDeleteFolder = async (id: string) => {
     await deleteFolder(id);
     setDeleteConfirmId(null);
   };
+
+  const topLevelIds = tree.map((node) => node.id);
+
+  const handleNoteDrop = async (folderId: string, noteId: string) => {
+    const moved = await moveNoteToFolder(noteId, folderId);
+    if (moved) toast.success("Note moved");
+    else toast.error("Could not move note");
+  };
+
+  const handleFolderReorderDrop = async (targetId: string) => {
+    if (!folderDragId || folderDragId === targetId) return;
+    const ids = topLevelIds.filter((id) => id !== folderDragId);
+    const targetIndex = ids.indexOf(targetId);
+    if (targetIndex < 0) return;
+    ids.splice(targetIndex, 0, folderDragId);
+    await reorderFolders(ids);
+  };
+
 
   const renderNode = (node: TreeNode, depth: number) => {
     const isSelected = selectedFolderId === node.id;
