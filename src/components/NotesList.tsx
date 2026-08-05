@@ -116,6 +116,26 @@ const NoteRow = forwardRef<HTMLDivElement, NoteRowProps>(
               </span>
             )}
           </div>
+          {!!tags?.length && (
+            <div className="flex flex-wrap items-center gap-1 mt-1.5">
+              {tags.slice(0, 4).map((tag) => (
+                <button
+                  key={tag}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTagClick?.(tag);
+                  }}
+                  className="inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-px text-[9px] font-medium text-muted-foreground hover:bg-primary/15 hover:text-primary transition-colors"
+                >
+                  <Tag className="w-2.5 h-2.5" />
+                  {tag}
+                </button>
+              ))}
+              {tags.length > 4 && (
+                <span className="text-[9px] text-muted-foreground/70">+{tags.length - 4}</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
