@@ -354,10 +354,16 @@ const NotesList = () => {
                     important={Boolean((note as any).important)}
                     isRecent={isRecent}
                     isSelected={id === String(selectedNoteId)}
+                    tags={note.tags || []}
                     onClick={() => selectNote(id || null)}
                     onDelete={() => deleteNote(id)}
                     onTogglePin={() => toggleNotePinned(id, !(note as any).pinned)}
                     onToggleImportant={() => toggleNoteImportant(id, !(note as any).important)}
+                    onTagClick={(tag) => setActiveTag((prev) => (prev === tag ? null : tag))}
+                    onDragStart={(event) => {
+                      event.dataTransfer.setData("application/x-focus-note", id);
+                      event.dataTransfer.effectAllowed = "move";
+                    }}
                     index={index}
                   />
                 );
