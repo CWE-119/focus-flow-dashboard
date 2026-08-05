@@ -126,22 +126,27 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
   }, [selectedFolderId, allNotes]);
 
   // Fetch all folders
+  const sortFolders = (data: Folder[]) =>
+    [...data].sort((a, b) => {
+      const posA = a.position ?? 100000;
+      const posB = b.position ?? 100000;
+      if (posA !== posB) return posA - posB;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateA - dateB;
+    });
+
   const fetchFolders = async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/folders`);
       if (!response.ok) throw new Error("Failed to fetch folders");
       const data = await response.json();
-      // Sort folders by creation date (oldest first, newest last)
-      const sortedData = [...data].sort((a: Folder, b: Folder) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return dateA - dateB;
-      });
-      setFolders(sortedData);
+      setFolders(sortFolders(data));
     } catch (error) {
       console.error("Error fetching folders:", error);
     }
   };
+
 
   // Fetch notes by folder
   const fetchNotesByFolder = async (folderId: string) => {
