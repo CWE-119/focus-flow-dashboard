@@ -7,6 +7,7 @@ interface Folder {
   name: string;
   color?: string | null;
   parentId?: string | number | null;
+  position?: number | null;
   createdAt?: Date;
 }
 
@@ -19,6 +20,7 @@ interface Note {
   revision?: number;
   pinned?: boolean;
   important?: boolean;
+  tags?: string[];
   lastViewedAt?: string | Date | null;
   createdAt?: string | Date;
   updatedAt?: string | Date;
