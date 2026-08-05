@@ -104,6 +104,10 @@ interface MarkdownEditorProps {
   onOpenFolder?: (folderId: string) => void;
   onCreateLinkedNote?: (title: string, folderId?: string) => Promise<string | null>;
   onTogglePinned?: (pinned: boolean) => Promise<void>;
+  important?: boolean;
+  onToggleImportant?: (important: boolean) => Promise<void>;
+  tags?: string[];
+  onTagsChange?: (tags: string[]) => Promise<void> | void;
   getIndexedReferences?: (noteId: string) => Promise<ApiIndexedReferences | null>;
   getNoteVersions?: (noteId: string) => Promise<NoteVersion[]>;
   onRestoreVersion?: (noteId: string, versionId: string) => Promise<void>;
