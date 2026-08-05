@@ -65,6 +65,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
       revision INTEGER DEFAULT 1,
       pinned INTEGER DEFAULT 0,
       important INTEGER DEFAULT 0,
+      tags TEXT,
       lastViewedAt DATETIME,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -245,6 +246,16 @@ const db = new sqlite3.Database(dbPath, (err) => {
       ensureColumn('folders', 'parentId INTEGER', 'parentId', (errParent, addedParent) => {
         if (errParent) console.warn('⚠ Could not ensure folders.parentId:', errParent.message);
         else if (addedParent) console.log('✓ Added missing column folders.parentId');
+
+        ensureColumn('folders', 'position INTEGER', 'position', (errPos, addedPos) => {
+          if (errPos) console.warn('⚠ Could not ensure folders.position:', errPos.message);
+          else if (addedPos) console.log('✓ Added missing column folders.position');
+        });
+
+        ensureColumn('notes', 'tags TEXT', 'tags', (errTags, addedTags) => {
+          if (errTags) console.warn('⚠ Could not ensure notes.tags:', errTags.message);
+          else if (addedTags) console.log('✓ Added missing column notes.tags');
+        });
       });
 
 
