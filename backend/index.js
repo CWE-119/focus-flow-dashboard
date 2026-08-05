@@ -1074,12 +1074,34 @@ app.post('/api/notes', (req, res) => {
 const mapFolderRow = (row) => row ? ({ ...row, _id: row.id, parentId: row.parentId ?? null }) : row;
 
 app.get('/api/folders', (req, res) => {
-  db.all('SELECT * FROM folders ORDER BY createdAt DESC', (err, rows) => {
+  db.all('SELECT * FROM folders ORDER BY COALESCE(position, 100000) ASC, createdAt ASC', (err, rows) => {
     if (err) {
       console.error('Error fetching folders:', err);
       return res.status(500).json({ error: 'Failed to fetch folders' });
     }
     res.json((rows || []).map(mapFolderRow));
+  });
+});
+
+// Reorder folders: body { ids: [folderId, ...] } in desired order
+app.put('/api/folders/reorder', (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+  if (!ids || ids.length === 0) return res.status(400).json({ error: 'ids array is required' });
+
+  db.serialize(() => {
+    let failed = null;
+    ids.forEach((id, index) => {
+      db.run('UPDATE folders SET position = ? WHERE id = ?', [index, id], (err) => {
+        if (err && !failed) failed = err;
+      });
+    });
+    db.all('SELECT * FROM folders ORDER BY COALESCE(position, 100000) ASC, createdAt ASC', (err, rows) => {
+      if (err || failed) {
+        console.error('Error reordering folders:', err || failed);
+        return res.status(500).json({ error: 'Failed to reorder folders' });
+      }
+      res.json((rows || []).map(mapFolderRow));
+    });
   });
 });
 
