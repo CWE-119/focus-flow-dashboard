@@ -312,19 +312,72 @@ const FoldersSidebar = () => {
     const isOpen = hasChildren && !collapsed[node.id];
     const count = totalSubtreeCount(node);
 
+    const isNoteTarget = noteDropTargetId === node.id;
+    const isFolderTarget = folderDropTargetId === node.id;
+
     return (
       <div key={node.id}>
         <motion.div
           layout
           initial={{ opacity: 0, y: 2 }}
           animate={{ opacity: 1, y: 0 }}
+          draggable={depth === 0 && editingId !== node.id}
+          onDragStart={(e: any) => {
+            if (depth !== 0) return;
+            e.dataTransfer?.setData(FOLDER_DND_TYPE, node.id);
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+            setFolderDragId(node.id);
+          }}
+          onDragEnd={() => {
+            setFolderDragId(null);
+            setFolderDropTargetId(null);
+            setNoteDropTargetId(null);
+          }}
+          onDragOver={(e: any) => {
+            const types: string[] = Array.from(e.dataTransfer?.types || []);
+            if (types.includes(NOTE_DND_TYPE)) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setNoteDropTargetId(node.id);
+              setFolderDropTargetId(null);
+            } else if (types.includes(FOLDER_DND_TYPE) && depth === 0 && folderDragId !== node.id) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setFolderDropTargetId(node.id);
+              setNoteDropTargetId(null);
+            }
+          }}
+          onDragLeave={() => {
+            setNoteDropTargetId((prev) => (prev === node.id ? null : prev));
+            setFolderDropTargetId((prev) => (prev === node.id ? null : prev));
+          }}
+          onDrop={(e: any) => {
+            e.preventDefault();
+            const noteId = e.dataTransfer?.getData(NOTE_DND_TYPE);
+            const folderId = e.dataTransfer?.getData(FOLDER_DND_TYPE);
+            setNoteDropTargetId(null);
+            setFolderDropTargetId(null);
+            if (noteId) {
+              void handleNoteDrop(node.id, noteId);
+            } else if (folderId && depth === 0) {
+              void handleFolderReorderDrop(node.id);
+            }
+            setFolderDragId(null);
+          }}
           className={cn(
             "group flex items-center gap-1 rounded-md pr-1 py-1 cursor-pointer transition-colors border border-transparent",
-            isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-muted/60"
+            isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-muted/60",
+            isNoteTarget && "bg-primary/15 border-primary ring-1 ring-primary/40",
+            isFolderTarget && "border-dashed border-primary/60",
+            folderDragId === node.id && "opacity-50"
           )}
           style={{ paddingLeft: 4 + depth * 14 }}
           onClick={() => selectFolder(node.id)}
         >
+          {depth === 0 && (
+            <GripVertical className="w-3 h-3 flex-shrink-0 text-muted-foreground/40 opacity-0 group-hover:opacity-100 cursor-grab" />
+          )}
+
           <button
             className={cn(
               "h-4 w-4 flex items-center justify-center flex-shrink-0 text-muted-foreground transition-transform",
