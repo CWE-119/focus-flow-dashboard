@@ -427,6 +427,14 @@ const NotesContent = () => {
                 onTogglePinned={async (pinned) => {
                   await toggleNotePinned(getNoteId(selectedNote), pinned);
                 }}
+                important={Boolean(selectedNote.important)}
+                onToggleImportant={async (important) => {
+                  await toggleNoteImportant(getNoteId(selectedNote), important);
+                }}
+                tags={selectedNote.tags || []}
+                onTagsChange={async (tags) => {
+                  await updateNoteTags(getNoteId(selectedNote), tags);
+                }}
                 getIndexedReferences={getIndexedReferences}
                 getNoteVersions={getNoteVersions}
                 onRestoreVersion={async (noteId, versionId) => {
