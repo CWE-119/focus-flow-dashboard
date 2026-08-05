@@ -464,10 +464,10 @@ const FoldersSidebar = () => {
                   title="Rename"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setEditingId(node.id);
-                    setEditingName(node.name);
+                    startEditing(node.id, node.name);
                   }}
                 >
+
                   <Edit2 className="w-3 h-3" />
                 </Button>
                 <Button
