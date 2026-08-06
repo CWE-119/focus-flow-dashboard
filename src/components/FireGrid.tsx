@@ -55,23 +55,14 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
     const obs = new ResizeObserver(resize);
     obs.observe(canvas);
 
-    const palette = () => {
-      const style = getComputedStyle(document.documentElement);
-      const stops: [number, number, number][] = [
-        parseCssHsl(style.getPropertyValue("--contribution-low")),
-        parseCssHsl(style.getPropertyValue("--contribution-medium")),
-        parseCssHsl(style.getPropertyValue("--contribution-high")),
-        parseCssHsl(style.getPropertyValue("--contribution-max")),
-      ];
-      return stops.every((s) => s[1] === 0 && s[2] === 0)
-        ? ([
-            [8, 85, 45],
-            [22, 90, 52],
-            [34, 95, 58],
-            [46, 100, 68],
-          ] as [number, number, number][])
-        : stops;
-    };
+    const FIRE: [number, number, number][] = [
+      [6, 80, 38],
+      [18, 92, 48],
+      [30, 96, 55],
+      [44, 100, 66],
+    ];
+
+    const palette = () => FIRE;
 
     let stops = palette();
     let paletteTick = 0;

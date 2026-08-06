@@ -286,9 +286,9 @@ const AudioVisualizer = () => {
           </div>
         )}
         {!isActive && mode === "fire" && (
-          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center pb-1">
+          <div className="absolute top-0 right-0">
             <p className="font-body text-[10px] text-muted-foreground">
-              Press play to make the fire react to your audio
+              Press play to react to audio
             </p>
           </div>
         )}
