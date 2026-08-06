@@ -7,7 +7,6 @@ import RemindersList from "@/components/RemindersList";
 import ContributionGrid from "@/components/ContributionGrid";
 import Stats from "@/components/Stats";
 import AudioVisualizer from "@/components/AudioVisualizer";
-import ProductivityTips from "@/components/ProductivityTips";
 import KeyboardShortcutsModal, { KeyboardShortcutsButton } from "@/components/KeyboardShortcutsModal";
 import { ReminderForm } from "@/components/ReminderForm";
 import { RemindersProvider } from "@/contexts/RemindersContext";
@@ -21,6 +20,7 @@ const IndexContent = () => {
   const navigate = useNavigate();
   const [reminderFormOpen, setReminderFormOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [expanded, setExpanded] = useState<"tasks" | "reminders" | null>(null);
 
   useKeyboardShortcuts({
     onNewReminder: () => setReminderFormOpen(true),
