@@ -52,35 +52,67 @@ const IndexContent = () => {
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6 items-start">
         {/* Left Column - Timer, Clock & Visualizer */}
-        {expanded === null && (
-          <div className="lg:col-span-5 space-y-4 sm:space-y-5 lg:space-y-6">
-            <Timer />
-            <Clock />
-            <AudioVisualizer />
-          </div>
-        )}
+        <div className="lg:col-span-5 space-y-4 sm:space-y-5 lg:space-y-6">
+          <Timer />
+          <Clock />
+          <AudioVisualizer />
+        </div>
 
         {/* Right Column - Todo, Reminders & Stats */}
-        <div className={`${expanded === null ? "lg:col-span-7" : "lg:col-span-12"} space-y-4 sm:space-y-5 lg:space-y-6`}>
-          <div
-            className={`grid gap-4 sm:gap-5 lg:gap-6 items-stretch ${
-              expanded === null ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"
-            }`}
-          >
-            {expanded !== "reminders" && (
-              <TodoList
-                expanded={expanded === "tasks"}
-                onToggleExpand={() => setExpanded(expanded === "tasks" ? null : "tasks")}
-              />
+        <div className="lg:col-span-7 space-y-4 sm:space-y-5 lg:space-y-6">
+          <LayoutGroup>
+            <div className="flex flex-col xl:flex-row gap-4 sm:gap-5 lg:gap-6 items-stretch">
+              <AnimatePresence initial={false} mode="popLayout">
+                {expanded !== "reminders" && (
+                  <motion.div
+                    key="tasks"
+                    layout
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={PANEL_TRANSITION}
+                    className="flex-1 min-w-0"
+                  >
+                    <TodoList
+                      expanded={expanded === "tasks"}
+                      onToggleExpand={() => setExpanded(expanded === "tasks" ? null : "tasks")}
+                    />
+                  </motion.div>
+                )}
+                {expanded !== "tasks" && (
+                  <motion.div
+                    key="reminders"
+                    layout
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={PANEL_TRANSITION}
+                    className="flex-1 min-w-0"
+                  >
+                    <RemindersList
+                      expanded={expanded === "reminders"}
+                      onToggleExpand={() => setExpanded(expanded === "reminders" ? null : "reminders")}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </LayoutGroup>
+
+          <AnimatePresence initial={false}>
+            {expanded === null && (
+              <motion.div
+                key="stats"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={PANEL_TRANSITION}
+                className="overflow-hidden"
+              >
+                <Stats />
+              </motion.div>
             )}
-            {expanded !== "tasks" && (
-              <RemindersList
-                expanded={expanded === "reminders"}
-                onToggleExpand={() => setExpanded(expanded === "reminders" ? null : "reminders")}
-              />
-            )}
-          </div>
-          {expanded === null && <Stats />}
+          </AnimatePresence>
         </div>
       </div>
 
