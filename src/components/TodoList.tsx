@@ -142,7 +142,12 @@ const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, cate
 });
 AnimatedTodo.displayName = "AnimatedTodo";
 
-const TodoList = () => {
+interface TodoListProps {
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+}
+
+const TodoList = ({ expanded = false, onToggleExpand }: TodoListProps) => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [quickTodo, setQuickTodo] = useState("");
   const [formOpen, setFormOpen] = useState(false);

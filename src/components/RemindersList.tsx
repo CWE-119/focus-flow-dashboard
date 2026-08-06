@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useReminders } from "@/contexts/RemindersContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, Bell, Clock } from "lucide-react";
+import { Plus, X, Bell, Clock, Maximize2, Minimize2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
 import { ReminderForm } from "@/components/ReminderForm";
@@ -78,14 +78,19 @@ const AnimatedReminder = ({ reminder, onToggle, onDelete, index }: AnimatedRemin
   );
 };
 
-const RemindersList = () => {
+interface RemindersListProps {
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+}
+
+const RemindersList = ({ expanded = false, onToggleExpand }: RemindersListProps) => {
   const { reminders, updateReminder, deleteReminder, getUpcomingReminders, getOverdueReminders } = useReminders();
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   // Get upcoming (7 days) and overdue reminders
   const upcomingReminders = getUpcomingReminders(7);
   const overdueReminders = getOverdueReminders();
-  const displayedReminders = [...overdueReminders, ...upcomingReminders].slice(0, 10);
+  const displayedReminders = [...overdueReminders, ...upcomingReminders].slice(0, expanded ? 100 : 10);
 
   const toggleReminder = async (id: string, completed: boolean) => {
     await updateReminder(id, { completed: !completed });
@@ -98,18 +103,31 @@ const RemindersList = () => {
   const completedCount = reminders.filter(r => r.completed).length;
 
   return (
-    <div className="border border-border rounded-md p-6 bg-card">
+    <div className="border border-border rounded-md p-6 bg-card flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between mb-4">
         <span className="font-body text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <Bell className="w-3 h-3" />
           Reminders
         </span>
-        <span className="font-body text-xs text-muted-foreground tabular-nums">
-          {completedCount}/{reminders.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-body text-xs text-muted-foreground tabular-nums">
+            {completedCount}/{reminders.length}
+          </span>
+          {onToggleExpand && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={onToggleExpand}
+              title={expanded ? "Collapse" : "Expand"}
+            >
+              {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="space-y-3 mb-5 max-h-[240px] overflow-y-auto">
+      <div className={`space-y-3 mb-5 overflow-y-auto flex-1 ${expanded ? "min-h-[240px]" : "min-h-0 max-h-[240px]"}`}>
         <AnimatePresence mode="popLayout">
           {displayedReminders.length === 0 ? (
             <motion.p
