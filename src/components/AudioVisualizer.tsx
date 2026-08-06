@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Music, Mic, Monitor, Play, Square, Palette } from "lucide-react";
+import { Music, Mic, Monitor, Play, Square, Palette, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FireGrid from "@/components/FireGrid";
 
 const BAR_COUNT = 48;
 type SourceType = "system" | "mic";
+type VizMode = "bars" | "fire";
 
 // Parse "H S% L%" CSS variable into [h, s, l] numbers
 function parseCssHsl(val: string): [number, number, number] {
@@ -21,6 +23,8 @@ const AudioVisualizer = () => {
   const [source, setSource] = useState<SourceType>("system");
   const [trackName, setTrackName] = useState<string>("");
   const [colored, setColored] = useState(false);
+  const [mode, setMode] = useState<VizMode>("bars");
+  const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
   const coloredRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
@@ -95,6 +99,7 @@ const AudioVisualizer = () => {
     streamRef.current = null;
     audioCtxRef.current = null;
     smoothedRef.current.fill(0);
+    setAnalyserNode(null);
     setIsActive(false);
     setTrackName("");
   }, []);
@@ -109,6 +114,7 @@ const AudioVisualizer = () => {
     audioCtxRef.current = audioCtx;
     analyserRef.current = analyser;
     streamRef.current = stream;
+    setAnalyserNode(analyser);
     setIsActive(true);
 
     const audioTrack = stream.getAudioTracks()[0];
@@ -210,6 +216,13 @@ const AudioVisualizer = () => {
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
+            onClick={() => setMode((m) => (m === "fire" ? "bars" : "fire"))}
+            className={`p-1 border border-border rounded transition-colors mr-1 ${mode === "fire" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            title={mode === "fire" ? "Fire mode on" : "Fire mode off"}
+          >
+            <Flame className="h-3 w-3" />
+          </button>
+          <button
             onClick={toggleColored}
             className={`p-1 border border-border rounded transition-colors mr-1 ${colored ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             title={colored ? "Color mode on" : "Color mode off"}
@@ -260,11 +273,22 @@ const AudioVisualizer = () => {
       )}
 
       <div className="flex-1 relative min-h-0">
-        <canvas ref={canvasRef} className="w-full h-full block" />
-        {!isActive && (
+        {mode === "fire" ? (
+          <FireGrid analyser={analyserNode} cell={7} />
+        ) : (
+          <canvas ref={canvasRef} className="w-full h-full block" />
+        )}
+        {!isActive && mode === "bars" && (
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="font-body text-xs text-muted-foreground">
               {source === "mic" ? "Click play to use microphone" : "Click play to capture system audio"}
+            </p>
+          </div>
+        )}
+        {!isActive && mode === "fire" && (
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center pb-1">
+            <p className="font-body text-[10px] text-muted-foreground">
+              Press play to make the fire react to your audio
             </p>
           </div>
         )}
