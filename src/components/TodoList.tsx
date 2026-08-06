@@ -2,7 +2,7 @@ import React, { forwardRef, useCallback, useMemo, useState, useEffect } from "re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit2, Plus, X, Repeat, Flag, Settings2, Tag } from "lucide-react";
+import { Edit2, Plus, X, Repeat, Flag, Settings2, Tag, Maximize2, Minimize2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import TodoForm, { TodoFormData } from "./TodoForm";
 import GradientText from "@/components/ui/gradient-text";
@@ -50,7 +50,7 @@ const priorityColors = {
 
 const activityGradientColors = ["#5ca8e0", "#9b7ed9", "#d96aa3", "#e09746"];
 const TODO_ROW_HEIGHT = 40;
-const TODO_LIST_HEIGHT = 240;
+
 const TODO_OVERSCAN = 6;
 const getTodoId = (todo: Todo) => todo._id || (todo.id !== undefined ? String(todo.id) : "");
 
@@ -148,6 +148,8 @@ const TodoList = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
+  const [listHeight, setListHeight] = useState(240);
+  const listRef = React.useRef<HTMLDivElement>(null);
   const [activeFilter, setActiveFilter] = useState<string | "all">("all");
   const [managerOpen, setManagerOpen] = useState(false);
 
@@ -204,14 +206,14 @@ const TodoList = () => {
 
   const visibleTodos = useMemo(() => {
     const start = Math.max(0, Math.floor(scrollTop / TODO_ROW_HEIGHT) - TODO_OVERSCAN);
-    const count = Math.ceil(TODO_LIST_HEIGHT / TODO_ROW_HEIGHT) + TODO_OVERSCAN * 2;
+    const count = Math.ceil(listHeight / TODO_ROW_HEIGHT) + TODO_OVERSCAN * 2;
     return {
       start,
       items: filteredTodos.slice(start, start + count),
       before: start * TODO_ROW_HEIGHT,
       after: Math.max(0, (filteredTodos.length - start - count) * TODO_ROW_HEIGHT),
     };
-  }, [filteredTodos, scrollTop]);
+  }, [filteredTodos, scrollTop, listHeight]);
 
   const migrateLegacyTaskCategories = useCallback(async (fetchedTodos: Todo[]) => {
     const legacyMap = readLegacyTaskCategoryMap();
@@ -372,10 +374,20 @@ const TodoList = () => {
     }
   }, [activeFilter, categories]);
 
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const update = () => setListHeight(el.clientHeight || 240);
+    update();
+    const obs = new ResizeObserver(update);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   const completedCount = todos.filter((t) => t.completed).length;
 
   return (
-    <div className="border border-border rounded-md p-6 bg-card">
+    <div className="border border-border rounded-md p-6 bg-card flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between mb-4">
         <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
           Today's Tasks
@@ -393,6 +405,17 @@ const TodoList = () => {
           >
             <Settings2 className="w-3.5 h-3.5" />
           </Button>
+          {onToggleExpand && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={onToggleExpand}
+              title={expanded ? "Collapse" : "Expand"}
+            >
+              {expanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -445,7 +468,8 @@ const TodoList = () => {
       </div>
 
       <div
-        className="mb-5 max-h-[240px] overflow-y-auto"
+        ref={listRef}
+        className={cn("mb-5 overflow-y-auto", expanded ? "flex-1 min-h-[240px]" : "flex-1 min-h-0 max-h-[240px]")}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         <AnimatePresence mode="popLayout">
