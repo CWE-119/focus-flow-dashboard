@@ -474,7 +474,7 @@ const TodoList = ({ expanded = false, onToggleExpand }: TodoListProps) => {
 
       <div
         ref={listRef}
-        className={cn("mb-5 overflow-y-auto", expanded ? "flex-1 min-h-[240px]" : "flex-1 min-h-0 max-h-[240px]")}
+        className={cn("mb-5 overflow-y-auto", expanded ? "flex-1 min-h-[420px]" : "flex-1 min-h-0 max-h-[240px]")}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         <AnimatePresence mode="popLayout">
