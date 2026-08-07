@@ -127,7 +127,7 @@ const RemindersList = ({ expanded = false, onToggleExpand }: RemindersListProps)
         </div>
       </div>
 
-      <div className={`space-y-3 mb-5 overflow-y-auto flex-1 ${expanded ? "min-h-[420px]" : "min-h-0 max-h-[240px]"}`}>
+      <div className={`space-y-3 mb-5 overflow-y-auto flex-1 min-h-0 ${expanded ? "min-h-[420px]" : ""}`}>
         <AnimatePresence mode="popLayout">
           {displayedReminders.length === 0 ? (
             <motion.p
