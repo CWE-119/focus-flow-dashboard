@@ -53,18 +53,20 @@ const IndexContent = () => {
       </header>
 
       {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 lg:gap-6 items-stretch">
         {/* Left Column - Timer, Clock & Visualizer */}
-        <div className="lg:col-span-5 space-y-4 sm:space-y-5 lg:space-y-6">
+        <div className="lg:col-span-5 flex flex-col gap-4 sm:gap-5 lg:gap-6">
           <Timer />
           <Clock />
-          <AudioVisualizer />
+          <div className="flex-1 min-h-[220px] [&>*]:h-full">
+            <AudioVisualizer />
+          </div>
         </div>
 
         {/* Right Column - Todo, Reminders & Stats */}
-        <div className="lg:col-span-7 space-y-4 sm:space-y-5 lg:space-y-6">
+        <div className="lg:col-span-7 flex flex-col gap-4 sm:gap-5 lg:gap-6 min-h-0">
           <LayoutGroup>
-            <div className="flex flex-col xl:flex-row gap-4 sm:gap-5 lg:gap-6 items-stretch">
+            <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 flex-1 min-h-0">
               <AnimatePresence initial={false} mode="popLayout">
                 {expanded !== "reminders" && (
                   <motion.div
@@ -74,7 +76,7 @@ const IndexContent = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={PANEL_TRANSITION}
-                    className="flex-1 min-w-0"
+                    className="flex-1 min-h-0"
                   >
                     <TodoList
                       expanded={expanded === "tasks"}
@@ -90,7 +92,7 @@ const IndexContent = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
                     transition={PANEL_TRANSITION}
-                    className="flex-1 min-w-0"
+                    className="flex-1 min-h-0"
                   >
                     <RemindersList
                       expanded={expanded === "reminders"}
@@ -110,7 +112,7 @@ const IndexContent = () => {
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={PANEL_TRANSITION}
-                className="overflow-hidden"
+                className="overflow-hidden shrink-0"
               >
                 <Stats />
               </motion.div>
@@ -118,6 +120,7 @@ const IndexContent = () => {
           </AnimatePresence>
         </div>
       </div>
+
 
       {/* Contribution Grid - Full Width */}
       <div className="mt-5 sm:mt-6 lg:mt-8">
