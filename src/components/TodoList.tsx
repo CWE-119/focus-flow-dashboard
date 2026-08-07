@@ -382,11 +382,18 @@ const TodoList = ({ expanded = false, onToggleExpand }: TodoListProps) => {
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
-    const update = () => setListHeight(el.clientHeight || 240);
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setListHeight(el.clientHeight || 240));
+    };
     update();
     const obs = new ResizeObserver(update);
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      obs.disconnect();
+    };
   }, []);
 
   const completedCount = todos.filter((t) => t.completed).length;
