@@ -14,7 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { ActiveTimerIndicator } from "@/components/ActiveTimerIndicator";
 import { Button } from "@/components/ui/button";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, NotebookPen, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 
 const PANEL_TRANSITION = { duration: 0.38, ease: [0.22, 1, 0.36, 1] as const };
