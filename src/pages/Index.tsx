@@ -42,33 +42,68 @@ const IndexContent = () => {
               aria-label="Open the notes section"
               className="group relative block text-left focus:outline-none"
             >
-              <h1 className="font-display text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-none text-foreground transition-all duration-500 group-hover:tracking-tight group-hover:text-muted-foreground group-focus-visible:text-muted-foreground">
-                {"FOCUS".split("").map((letter, i) => (
-                  <span
-                    key={i}
-                    className="inline-block transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5"
-                    style={{ transitionDelay: `${i * 45}ms` }}
-                  >
-                    {letter}
-                  </span>
-                ))}
-              </h1>
-              {/* Sweeping underline */}
-              <span className="absolute -bottom-1 left-0 h-[3px] w-full origin-left scale-x-0 bg-foreground transition-transform duration-500 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100" />
-              {/* Notes hint */}
-              <span className="pointer-events-none absolute -top-1 left-full ml-3 hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 font-body text-[11px] uppercase tracking-[0.2em] text-muted-foreground opacity-0 transition-all duration-500 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 md:flex md:-translate-x-3">
+              {/* Corner brackets */}
+              <span className="pointer-events-none absolute -left-3 -top-3 h-4 w-4 border-l-2 border-t-2 border-primary opacity-0 transition-all duration-500 ease-out group-hover:opacity-100 group-focus-visible:opacity-100 md:-left-4 md:-top-4 md:h-6 md:w-6" />
+              <span className="pointer-events-none absolute -bottom-3 -right-3 h-4 w-4 border-b-2 border-r-2 border-primary opacity-0 transition-all duration-500 ease-out group-hover:opacity-100 group-focus-visible:opacity-100 md:-bottom-4 md:-right-4 md:h-6 md:w-6" />
+
+              <span className="relative block">
+                {/* Base layer */}
+                <h1 className="relative font-display text-5xl font-bold leading-none tracking-tighter text-foreground transition-colors duration-500 group-hover:text-muted-foreground/50 group-focus-visible:text-muted-foreground/50 sm:text-6xl md:text-8xl lg:text-9xl">
+                  {LETTERS.map((letter, i) => (
+                    <span
+                      key={i}
+                      className="inline-block transition-transform duration-500 ease-out group-hover:-translate-y-2 group-hover:rotate-[-3deg] group-focus-visible:-translate-y-2"
+                      style={{ transitionDelay: `${i * 55}ms` }}
+                    >
+                      {letter}
+                    </span>
+                  ))}
+                </h1>
+
+                {/* Accent layer wiping in over the base */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 font-display text-5xl font-bold leading-none tracking-tighter text-primary [clip-path:inset(0_100%_0_0)] transition-[clip-path] duration-[700ms] ease-out group-hover:[clip-path:inset(0_0_0_0)] group-focus-visible:[clip-path:inset(0_0_0_0)] sm:text-6xl md:text-8xl lg:text-9xl"
+                >
+                  {LETTERS.map((letter, i) => (
+                    <span
+                      key={i}
+                      className="inline-block transition-transform duration-500 ease-out group-hover:-translate-y-2 group-hover:rotate-[-3deg] group-focus-visible:-translate-y-2"
+                      style={{ transitionDelay: `${i * 55}ms` }}
+                    >
+                      {letter}
+                    </span>
+                  ))}
+                </span>
+              </span>
+
+              {/* Sweeping rule */}
+              <span className="absolute -bottom-1 left-0 h-[2px] w-full origin-left scale-x-0 bg-primary transition-transform duration-[600ms] ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100" />
+
+              {/* Notes hint chip */}
+              <span className="pointer-events-none absolute -top-1 left-full ml-3 hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-primary/40 bg-primary/10 px-3 py-1 font-body text-[11px] uppercase tracking-[0.2em] text-primary opacity-0 transition-all duration-500 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 md:flex md:-translate-x-4">
                 <NotebookPen className="h-3.5 w-3.5" />
                 Notes
-                <ArrowUpRight className="h-3.5 w-3.5" />
+                <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
             </button>
-            <p className="font-accent text-lg sm:text-xl md:text-2xl text-muted-foreground mt-2 italic">
-              Track your productivity{" "}
-              <span className="not-italic font-body text-xs uppercase tracking-widest opacity-60">
-                · click FOCUS for notes
-              </span>
-            </p>
+
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p className="font-accent text-lg italic text-muted-foreground sm:text-xl md:text-2xl">
+                Track your productivity
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/notes")}
+                className="group/hint inline-flex items-center gap-1.5 font-body text-[10px] uppercase tracking-[0.25em] text-muted-foreground transition-colors hover:text-primary"
+              >
+                <span className="h-px w-4 bg-current transition-all duration-300 group-hover/hint:w-7" />
+                Open notes
+                <ArrowUpRight className="h-3 w-3 transition-transform duration-300 group-hover/hint:translate-x-0.5 group-hover/hint:-translate-y-0.5" />
+              </button>
+            </div>
           </div>
+
 
           <div className="flex items-center gap-2 pt-2">
             <ActiveTimerIndicator />
