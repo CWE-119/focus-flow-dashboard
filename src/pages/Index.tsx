@@ -35,17 +35,41 @@ const IndexContent = () => {
       <header className="mb-8 md:mb-12">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 
-              className="font-display text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-foreground leading-none cursor-pointer hover:text-muted-foreground transition-colors"
+            <button
+              type="button"
               onClick={() => navigate("/notes")}
-              title="Go to Notes"
+              title="Open Notes"
+              aria-label="Open the notes section"
+              className="group relative block text-left focus:outline-none"
             >
-              FOCUS
-            </h1>
+              <h1 className="font-display text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-none text-foreground transition-all duration-500 group-hover:tracking-tight group-hover:text-muted-foreground group-focus-visible:text-muted-foreground">
+                {"FOCUS".split("").map((letter, i) => (
+                  <span
+                    key={i}
+                    className="inline-block transition-transform duration-500 ease-out group-hover:-translate-y-1.5 group-focus-visible:-translate-y-1.5"
+                    style={{ transitionDelay: `${i * 45}ms` }}
+                  >
+                    {letter}
+                  </span>
+                ))}
+              </h1>
+              {/* Sweeping underline */}
+              <span className="absolute -bottom-1 left-0 h-[3px] w-full origin-left scale-x-0 bg-foreground transition-transform duration-500 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100" />
+              {/* Notes hint */}
+              <span className="pointer-events-none absolute -top-1 left-full ml-3 hidden items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 font-body text-[11px] uppercase tracking-[0.2em] text-muted-foreground opacity-0 transition-all duration-500 ease-out group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 md:flex md:-translate-x-3">
+                <NotebookPen className="h-3.5 w-3.5" />
+                Notes
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </span>
+            </button>
             <p className="font-accent text-lg sm:text-xl md:text-2xl text-muted-foreground mt-2 italic">
-              Track your productivity
+              Track your productivity{" "}
+              <span className="not-italic font-body text-xs uppercase tracking-widest opacity-60">
+                · click FOCUS for notes
+              </span>
             </p>
           </div>
+
           <div className="flex items-center gap-2 pt-2">
             <ActiveTimerIndicator />
           </div>
