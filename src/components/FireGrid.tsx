@@ -68,6 +68,8 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
     let paletteTick = 0;
     let t = 0;
     let freq = new Uint8Array(0);
+    let smooth = new Float32Array(0);
+    let levelSmooth = 0;
 
     const tick = () => {
       if (cols === 0 || rows === 0 || heat.length !== cols * rows) {
@@ -86,33 +88,57 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
         for (let i = 0; i < freq.length; i++) level += freq[i];
         level = level / (freq.length * 255);
       }
+      levelSmooth = levelSmooth * 0.8 + level * 0.2;
 
-      // Seed the bottom row
+      if (smooth.length !== cols) smooth = new Float32Array(cols);
+
+      // Seed the bottom row.
+      // Audio columns are mapped symmetrically: bass in the middle, treble at
+      // the edges, on a log scale with a high-frequency gain so the sides never
+      // sit flat while music is loud.
       const bottom = (rows - 1) * cols;
-      const step = freq.length > 0 ? Math.max(1, Math.floor(freq.length / cols)) : 0;
+      const usable = freq.length > 0 ? Math.max(8, Math.floor(freq.length * 0.62)) : 0;
+      const half = Math.max(1, (cols - 1) / 2);
+
       for (let x = 0; x < cols; x++) {
-        const wave = 0.55 + 0.45 * Math.sin(t + x * 0.35) * Math.sin(t * 0.6 + x * 0.11);
-        let seed = wave * (0.55 + Math.random() * 0.45);
-        if (step > 0) {
-          const bin = freq[Math.min(freq.length - 1, x * step)] / 255;
-          seed = Math.min(1, seed * 0.35 + Math.pow(bin, 0.7) * 1.1 + level * 0.35);
+        const wave = 0.62 + 0.38 * Math.sin(t + x * 0.35) * Math.sin(t * 0.6 + x * 0.11);
+        let seed = wave * (0.7 + Math.random() * 0.3);
+
+        if (usable > 0) {
+          const u = Math.abs(x - (cols - 1) / 2) / half; // 0 center -> 1 edges
+          const lo = Math.floor(Math.pow(usable, u * 0.999));
+          const hi = Math.min(usable - 1, Math.max(lo, Math.floor(Math.pow(usable, Math.min(1, u + 1 / cols) * 0.999))));
+          let band = 0;
+          for (let i = lo; i <= hi; i++) band = Math.max(band, freq[i]);
+          band /= 255;
+          // Tilt gain upward toward the edges (highs) to offset spectral rolloff.
+          const gain = 1 + 2.2 * u * u;
+          const target = Math.min(1, Math.pow(band * gain, 0.62));
+          smooth[x] = Math.max(target, smooth[x] * 0.82);
+          seed = Math.min(1, smooth[x] * 1.05 + levelSmooth * 0.3 + wave * 0.18);
         }
+
         heat[bottom + x] = Math.min(1, seed);
       }
 
-      // Propagate upwards with cooling
-      const cooling = 0.055 + (node ? 0.05 * (1 - level) : 0.03);
-      for (let y = 0; y < rows - 1; y++) {
+      // Propagate upwards with cooling scaled to the grid height so full flames
+      // can actually reach the top row.
+      const budget = node ? 0.62 - 0.34 * levelSmooth : 0.55;
+      const cooling = budget / rows;
+      const drag = 0.02 / rows;
+
+      for (let y = rows - 2; y >= 0; y--) {
         for (let x = 0; x < cols; x++) {
           const below = (y + 1) * cols + x;
           const l = heat[below + (x > 0 ? -1 : 0)];
           const r = heat[below + (x < cols - 1 ? 1 : 0)];
           const b2 = heat[Math.min(heat.length - 1, (y + 2) * cols + x)];
-          const avg = (heat[below] * 2 + l + r + b2) / 5;
-          const drift = Math.random() * 0.03;
+          const avg = (heat[below] * 3 + l + r + b2 * 0.6) / 5.6;
+          const drift = Math.random() * drag;
           heat[y * cols + x] = Math.max(0, avg - cooling - drift);
         }
       }
+
 
       // Draw
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
