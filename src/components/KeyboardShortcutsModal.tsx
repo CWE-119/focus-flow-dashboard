@@ -72,35 +72,45 @@ interface KeyboardShortcutsModalProps {
 const KeyboardShortcutsModal = ({ isOpen, onOpenChange }: KeyboardShortcutsModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display text-xl flex items-center gap-2">
             <Keyboard className="h-5 w-5" />
             Keyboard Shortcuts
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 mt-4">
-          {shortcuts.map((shortcut, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between py-2 border-b border-border last:border-0"
-            >
-              <span className="font-body text-sm text-muted-foreground">
-                {shortcut.action}
-              </span>
-              <div className="flex items-center gap-1">
-                {shortcut.keys.map((key, keyIdx) => (
-                  <kbd
-                    key={keyIdx}
-                    className="px-2 py-1 text-xs font-mono bg-muted border border-border rounded-sm"
+        <div className="space-y-5 mt-4">
+          {shortcutGroups.map(({ group, items }) => (
+            <div key={group}>
+              <h3 className="mb-1 font-body text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                {group}
+              </h3>
+              <div className="space-y-1">
+                {items.map((shortcut, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between gap-4 py-1.5 border-b border-border last:border-0"
                   >
-                    {key}
-                  </kbd>
+                    <span className="font-body text-sm text-foreground/80">
+                      {shortcut.action}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {shortcut.keys.map((key, keyIdx) => (
+                        <kbd
+                          key={keyIdx}
+                          className="px-2 py-1 text-xs font-mono bg-muted border border-border rounded-sm"
+                        >
+                          {key}
+                        </kbd>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
           ))}
         </div>
+
         <p className="text-xs text-muted-foreground mt-4">
           On macOS, use <kbd className="px-1 py-0.5 text-xs font-mono bg-muted border border-border rounded-sm">⌘</kbd> instead of <kbd className="px-1 py-0.5 text-xs font-mono bg-muted border border-border rounded-sm">Ctrl</kbd>
         </p>
