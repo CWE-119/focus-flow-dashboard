@@ -24,35 +24,38 @@ const sections = [
     title: "Focus Dashboard",
     icon: Timer,
     items: [
-      "Focus timer with active-session tracking.",
-      "Live clock, audio visualizer, productivity tips, and session stats.",
-      "Contribution grid for daily activity history.",
-      "Theme switching for light and dark work sessions.",
+      "Focus timer with active-session tracking; the active session stays visible in the header while you move around.",
+      "Live clock, session stats, and a contribution grid of your daily activity history.",
+      "Audio visualizer with two modes: classic frequency bars and an ASCII-style fire grid that reacts to playing music.",
+      "Tasks and Reminders stack in the right column with matching heights; use each panel's expand button to fill the column.",
+      "Twelve color themes; cycle them from the footer toggle or with Ctrl/Cmd+Shift+T.",
     ],
   },
   {
-    title: "Tasks",
+    title: "Tasks And Categories",
     icon: CheckSquare,
     items: [
-      "Create quick tasks and full tasks with details.",
-      "Edit existing tasks without deleting and recreating them.",
-      "Mark tasks complete and keep the dashboard focused on current work.",
+      "Quick-add a task by typing in the inline field, or open the full form for details, due date, priority, and recurrence.",
+      "Assign a category to any task; category pills show on each row.",
+      "Manage categories (add, rename, recolor, delete) from the category manager in the tasks panel.",
+      "Filter today's tasks by category with the chip bar above the list.",
+      "Edit or complete tasks in place — no need to delete and recreate.",
     ],
   },
   {
     title: "Reminders",
     icon: Bell,
     items: [
-      "Create reminders from the dashboard.",
-      "Reminder list keeps upcoming work visible.",
-      "Keyboard shortcut support for fast reminder capture.",
+      "Create reminders from the dashboard or with Ctrl/Cmd+Shift+R anywhere on the dashboard.",
+      "Upcoming reminders stay listed under the tasks panel.",
+      "Reminder popups surface work when it becomes due.",
     ],
   },
   {
     title: "Notes",
     icon: FileText,
     items: [
-      "Folder-based notes with Markdown editing and preview.",
+      "Folder-based notes with Markdown editing and live preview.",
       "Autosave status with relative saved time, exact timestamp tooltip, and persisted offline draft queueing.",
       "Conflict detection warns when a note changed in another window before saving.",
       "Version history lets you restore earlier note snapshots.",
@@ -60,6 +63,27 @@ const sections = [
       "Draw annotations directly over the preview with pen, highlighter, shapes, text, select/move, lock, visibility, layers, undo, and redo.",
       "Markdown folder import/export preserves annotation sidecars next to notes.",
       "Pin notes, reopen recent notes, create daily notes, and start from templates.",
+    ],
+  },
+  {
+    title: "Organizing Notes",
+    icon: Network,
+    items: [
+      "Folders nest freely: every folder can hold subfolders, shown as a collapsible tree.",
+      "Drag a note onto any folder to move it; drag top-level folders to reorder them.",
+      "Rename folders inline in the sidebar — empty, overlong, and duplicate sibling names are rejected with a message.",
+      "Mark notes Important (amber star) and spot anything edited in the last 48 hours via the Recent badge.",
+      "Add tags to a note from the editor header; tag chips show in the list and #tag search filters by them.",
+    ],
+  },
+  {
+    title: "Highlight Style",
+    icon: Brush,
+    items: [
+      "Toggle the highlighter button in the editor toolbar (or Ctrl/Cmd+Shift+H) for banner-style formatting.",
+      "Headings render as full-width colored banners with a trailing arrow.",
+      "Bullets become circular chevron badges and ordered lists get numbered pills.",
+      "The choice is remembered between sessions.",
     ],
   },
   {
@@ -105,21 +129,61 @@ const sections = [
   },
   {
     title: "Canvas",
-    icon: Brush,
+    icon: Palette,
     items: [
-      "Open the freeform canvas from the notes header.",
+      "Open the freeform canvas from the notes header or with Alt+3.",
       "Sketch, arrange visual ideas, and keep visual planning separate from notes.",
+      "Canvas work is standalone and never mixes into the focus dashboard.",
+    ],
+  },
+];
+
+const shortcutGroups = [
+  {
+    group: "Navigation",
+    items: [
+      ["Alt + 1", "Dashboard"],
+      ["Alt + 2", "Notes"],
+      ["Alt + 3", "Canvas"],
+      ["Alt + 0", "Help page"],
+      ["?", "Shortcuts panel"],
+      ["Esc", "Close dialog / collapse panel"],
     ],
   },
   {
-    title: "Shortcuts",
-    icon: Keyboard,
+    group: "Dashboard",
     items: [
-      "Use the keyboard shortcuts button on the dashboard to view available shortcuts.",
-      "Use Ctrl+K or Cmd+K in Notes to open the command palette and fast note switcher.",
-      "Notes panels can be toggled quickly while writing.",
-      "The editor includes a block insert menu for headings, tasks, tables, Mermaid, DBML, and callouts.",
-      "Annotation tools include single-key tool shortcuts while annotation mode is active.",
+      ["Ctrl + J", "New task"],
+      ["Ctrl + Shift + R", "New reminder"],
+      ["Ctrl + Shift + T", "Cycle color theme"],
+      ["Space", "Start / pause timer"],
+      ["Ctrl + R", "Reset timer"],
+      ["Ctrl + Shift + S", "Save timer session"],
+    ],
+  },
+  {
+    group: "Notes",
+    items: [
+      ["Ctrl + N", "New note"],
+      ["Ctrl + Shift + N", "New folder"],
+      ["Ctrl + S", "Save note"],
+      ["Ctrl + K", "Command palette"],
+      ["Ctrl + B", "Toggle folders sidebar"],
+      ["Ctrl + L", "Toggle notes list"],
+      ["Ctrl + Shift + E", "Editor / preview"],
+      ["Ctrl + Shift + I", "Toggle Important"],
+      ["Ctrl + Shift + H", "Toggle highlight style"],
+    ],
+  },
+  {
+    group: "Annotations",
+    items: [
+      ["P / H / E", "Pen / highlighter / eraser"],
+      ["L / R / C", "Line / rectangle / circle"],
+      ["T / V", "Text / select"],
+      ["Delete", "Delete selection"],
+      ["Ctrl + Z", "Undo"],
+      ["Ctrl + Y", "Redo"],
     ],
   },
 ];
@@ -130,6 +194,7 @@ const quickActions = [
   { label: "Screenshot Studio", icon: Camera, path: "/showcase" },
   { label: "Dashboard", icon: Clock, path: "/" },
 ];
+
 
 const Help = () => {
   const navigate = useNavigate();
