@@ -158,6 +158,17 @@ const TodoList = ({ expanded = false, onToggleExpand }: TodoListProps) => {
   const [activeFilter, setActiveFilter] = useState<string | "all">("all");
   const [managerOpen, setManagerOpen] = useState(false);
 
+  useEffect(() => {
+    const openForm = () => {
+      setEditingTodo(null);
+      setFormOpen(true);
+    };
+    window.addEventListener("focusflow:new-task", openForm);
+    return () => window.removeEventListener("focusflow:new-task", openForm);
+  }, []);
+
+
+
   const {
     categories,
     getTaskCategory,
