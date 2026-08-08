@@ -26,8 +26,18 @@ const IndexContent = () => {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [expanded, setExpanded] = useState<"tasks" | "reminders" | null>(null);
 
+  const { cycleTheme } = useTheme();
+
   useKeyboardShortcuts({
     onNewReminder: () => setReminderFormOpen(true),
+    onNewTask: () => window.dispatchEvent(new Event("focusflow:new-task")),
+    onGoDashboard: () => navigate("/"),
+    onGoNotes: () => navigate("/notes"),
+    onGoCanvas: () => navigate("/canvas"),
+    onGoHelp: () => navigate("/help"),
+    onCycleTheme: cycleTheme,
+    onShowShortcuts: () => setShortcutsOpen(true),
+    onEscape: () => setExpanded(null),
   });
 
   return (
