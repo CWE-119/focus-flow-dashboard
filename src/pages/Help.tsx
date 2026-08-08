@@ -259,6 +259,39 @@ const Help = () => {
           ))}
         </section>
 
+        <section className="mt-8">
+          <div className="mb-3 flex items-center gap-2">
+            <Keyboard className="h-4 w-4" />
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Keyboard Shortcuts</h2>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground">
+            On macOS use <kbd className="rounded-sm border border-border bg-muted px-1 py-0.5 font-mono text-xs">⌘</kbd> in place of Ctrl.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {shortcutGroups.map(({ group, items }) => (
+              <article key={group} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+                <h3 className="mb-2 font-body text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  {group}
+                </h3>
+                <ul className="text-sm">
+                  {items.map(([keys, action]) => (
+                    <li
+                      key={keys}
+                      className="flex items-center justify-between gap-4 border-b border-border py-1.5 last:border-0"
+                    >
+                      <span className="text-muted-foreground">{action}</span>
+                      <kbd className="whitespace-nowrap rounded-sm border border-border bg-muted px-2 py-1 font-mono text-xs">
+                        {keys}
+                      </kbd>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </section>
+
+
         <section className="mt-8 rounded-lg border border-border bg-muted/35 p-4">
           <div className="mb-2 flex items-center gap-2">
             <Upload className="h-4 w-4" />
