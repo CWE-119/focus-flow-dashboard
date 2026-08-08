@@ -98,11 +98,52 @@ export const useKeyboardShortcuts = (shortcuts: KeyboardShortcuts) => {
         e.preventDefault();
         shortcuts.onTimerReset();
       }
-      
+
+      // Alt + 1/2/3/0: navigation
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !isTypingTarget(e.target)) {
+        if (e.key === '1' && shortcuts.onGoDashboard) {
+          e.preventDefault();
+          shortcuts.onGoDashboard();
+        }
+        if (e.key === '2' && shortcuts.onGoNotes) {
+          e.preventDefault();
+          shortcuts.onGoNotes();
+        }
+        if (e.key === '3' && shortcuts.onGoCanvas) {
+          e.preventDefault();
+          shortcuts.onGoCanvas();
+        }
+        if ((e.key === '0' || e.key === '/') && shortcuts.onGoHelp) {
+          e.preventDefault();
+          shortcuts.onGoHelp();
+        }
+      }
+
+      // Ctrl/Cmd + J: New Task
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j' && shortcuts.onNewTask) {
+        e.preventDefault();
+        shortcuts.onNewTask();
+      }
+
+      // Ctrl/Cmd + Shift + T: Cycle theme
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 't' && shortcuts.onCycleTheme) {
+        e.preventDefault();
+        shortcuts.onCycleTheme();
+      }
+
+      // Shift + ? or Ctrl/Cmd + /: Show shortcuts
+      if (shortcuts.onShowShortcuts && !isTypingTarget(e.target)) {
+        if (e.key === '?' || ((e.ctrlKey || e.metaKey) && e.key === '/')) {
+          e.preventDefault();
+          shortcuts.onShowShortcuts();
+        }
+      }
+
       // Escape: Close dialogs
       if (e.key === 'Escape') {
         shortcuts.onEscape?.();
       }
+
     };
 
     window.addEventListener('keydown', handleKeyDown);
