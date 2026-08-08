@@ -11,6 +11,7 @@ import KeyboardShortcutsModal, { KeyboardShortcutsButton } from "@/components/Ke
 import { ReminderForm } from "@/components/ReminderForm";
 import { RemindersProvider } from "@/contexts/RemindersContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { ActiveTimerIndicator } from "@/components/ActiveTimerIndicator";
 import { Button } from "@/components/ui/button";
