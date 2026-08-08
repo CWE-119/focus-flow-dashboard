@@ -13,7 +13,22 @@ interface KeyboardShortcuts {
   onTimerToggle?: () => void;
   onTimerReset?: () => void;
   onTimerSave?: () => void;
+  // Navigation
+  onGoDashboard?: () => void;
+  onGoNotes?: () => void;
+  onGoCanvas?: () => void;
+  onGoHelp?: () => void;
+  // Misc
+  onNewTask?: () => void;
+  onCycleTheme?: () => void;
+  onShowShortcuts?: () => void;
 }
+
+const isTypingTarget = (target: EventTarget | null) => {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable;
+};
 
 export const useKeyboardShortcuts = (shortcuts: KeyboardShortcuts) => {
   useEffect(() => {
