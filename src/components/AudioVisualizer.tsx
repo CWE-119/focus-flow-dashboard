@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Music, Mic, Monitor, Play, Square, Palette, Flame } from "lucide-react";
+import { Music, Mic, Monitor, Play, Square, Palette, Flame, Volume2, Sliders } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import FireGrid from "@/components/FireGrid";
 
 const BAR_COUNT = 48;
 type SourceType = "system" | "mic";
 type VizMode = "bars" | "fire";
+
 
 // Parse "H S% L%" CSS variable into [h, s, l] numbers
 function parseCssHsl(val: string): [number, number, number] {
