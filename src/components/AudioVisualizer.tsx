@@ -72,7 +72,6 @@ const AudioVisualizer = () => {
 
     const smoothed = smoothedRef.current;
 
-    const step = Math.floor(data.length / BAR_COUNT);
     const bal = balancedRef.current;
     const maxH = maxHeightRef.current;
 
@@ -83,12 +82,21 @@ const AudioVisualizer = () => {
     level = level / (data.length * 255);
 
     for (let i = 0; i < BAR_COUNT; i++) {
-      const u = i / (BAR_COUNT - 1); // 0 = bass, 1 = treble
-      let raw = data[i * step] / 255;
+      // Mirror the spectrum around the centre: bass sits in the middle and
+      // treble moves toward both edges. This keeps both sides equally alive
+      // instead of leaving the right-hand (high-frequency) bars nearly flat.
+      const half = (BAR_COUNT - 1) / 2;
+      const u = Math.abs(i - half) / half;
+      const usable = Math.max(8, Math.floor(data.length * 0.62));
+      const lo = Math.min(usable - 1, Math.floor(Math.pow(usable, u * 0.999)));
+      const hi = Math.min(usable - 1, Math.max(lo, Math.floor(Math.pow(usable, Math.min(1, u + 2 / BAR_COUNT) * 0.999))));
+      let band = 0;
+      for (let bin = lo; bin <= hi; bin++) band = Math.max(band, data[bin]);
+      let raw = band / 255;
       if (bal) {
-        // Flatten spectral rolloff, then floor with overall level.
-        raw = Math.min(1, raw * (1 + 5 * u * u));
-        raw = Math.max(raw, level * 0.85);
+        // Compensate for spectral rolloff, then use loudness as a floor.
+        raw = Math.min(1, raw * (1 + 4.5 * u * u));
+        raw = Math.max(raw, level * 0.92);
       }
 
       // Fast attack, slow decay

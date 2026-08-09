@@ -126,16 +126,22 @@ const FireGrid = ({
 
       if (smooth.length !== cols) smooth = new Float32Array(cols);
 
-      // Seed the bottom row. Audio columns are mapped symmetrically: bass in the
-      // middle, treble at the edges, on a log scale with high-frequency gain so
-      // the sides never sit flat while music is loud.
+      // Seed the bottom row. Audio is mirrored around the centre so both sides
+      // receive exactly the same frequency energy.
       const bottom = (rows - 1) * cols;
       const usable = freq.length > 0 ? Math.max(8, Math.floor(freq.length * 0.62)) : 0;
       const half = Math.max(1, (cols - 1) / 2);
+      const reaches = new Float32Array(cols);
 
       for (let x = 0; x < cols; x++) {
-        const wave = 0.62 + 0.38 * Math.sin(t + x * 0.35) * Math.sin(t * 0.6 + x * 0.11);
-        let seed = wave * (0.7 + Math.random() * 0.3);
+        // Several incommensurate waves produce narrow, continuously splitting
+        // tongues instead of a single smooth dome or concentric heat blobs.
+        const tongue =
+          0.52 +
+          0.2 * Math.sin(x * 0.57 + t * 1.7) +
+          0.16 * Math.sin(x * 0.19 - t * 1.13) +
+          0.12 * Math.sin(x * 1.31 + t * 0.73);
+        let signal = 0.72;
 
         if (usable > 0) {
           const u = Math.abs(x - (cols - 1) / 2) / half; // 0 center -> 1 edges
@@ -151,30 +157,42 @@ const FireGrid = ({
           // Full-volume mode flattens it fully so both sides match the centre.
           const gain = bal ? 1 + 5 * u * u : 1 + 2.2 * u * u;
           let target = Math.min(1, Math.pow(band * gain, bal ? 0.45 : 0.62));
-          if (bal) target = Math.max(target, levelSmooth * 0.85);
-          smooth[x] = Math.max(target, smooth[x] * 0.82);
-          seed = Math.min(1, smooth[x] * 1.05 + levelSmooth * 0.3 + wave * 0.18);
+          if (bal) target = Math.max(target, levelSmooth * 0.95);
+          smooth[x] = target > smooth[x]
+            ? smooth[x] + (target - smooth[x]) * 0.68
+            : smooth[x] * 0.86;
+          signal = Math.min(1, smooth[x] + levelSmooth * 0.22);
         }
 
-        heat[bottom + x] = Math.min(1, ease(Math.min(1, seed)) * 0.35 + seed * 0.65);
+        const sourceFlicker = 0.84 + Math.random() * 0.16;
+        const seed = Math.min(1, 0.5 + signal * 0.5) * sourceFlicker;
+        heat[bottom + x] = ease(seed);
+
+        // Every column gets a different, smoothly moving energy budget. The
+        // slider scales the whole field rather than clipping it at a row, so a
+        // reduced maximum height still has a pointed, lively silhouette.
+        const shape = Math.max(0.28, Math.min(1, tongue));
+        const audioLift = node ? 0.5 + signal * 0.5 : 0.82;
+        reaches[x] = Math.max(2, rows * maxH * shape * audioLift);
       }
 
-      // Propagate upwards. Cooling is scaled to the *reachable* height so a full
-      // seed reaches exactly maxHeight of the grid instead of dying early.
-      const reach = Math.max(2, rows * maxH);
-      const budget = node ? 0.98 - 0.18 * levelSmooth : 0.9;
-      const cooling = budget / reach;
-      const drag = 0.02 / reach;
-
+      // Advect heat upward with changing lateral drift. Per-column cooling
+      // creates long tips, short gaps and splitting tongues like a real flame.
       for (let y = rows - 2; y >= 0; y--) {
         for (let x = 0; x < cols; x++) {
-          const below = (y + 1) * cols + x;
-          const l = heat[below + (x > 0 ? -1 : 0)];
-          const r = heat[below + (x < cols - 1 ? 1 : 0)];
-          const b2 = heat[Math.min(heat.length - 1, (y + 2) * cols + x)];
-          const avg = (heat[below] * 3 + l + r + b2 * 0.6) / 5.6;
-          const drift = Math.random() * drag;
-          heat[y * cols + x] = Math.max(0, avg - cooling - drift);
+          const rise = rows - 1 - y;
+          const sway = Math.sin(t * 1.4 + y * 0.22) + Math.sin(t * 0.61 + y * 0.09);
+          const drift = sway > 0.55 ? 1 : sway < -0.55 ? -1 : 0;
+          const sourceX = Math.max(0, Math.min(cols - 1, x - drift));
+          const below = (y + 1) * cols + sourceX;
+          const left = (y + 1) * cols + Math.max(0, sourceX - 1);
+          const right = (y + 1) * cols + Math.min(cols - 1, sourceX + 1);
+          const below2 = Math.min(rows - 1, y + 2) * cols + sourceX;
+          const carried = heat[below] * 0.52 + heat[left] * 0.16 + heat[right] * 0.16 + heat[below2] * 0.16;
+          const localReach = Math.max(2, (reaches[x] + reaches[sourceX]) * 0.5);
+          const altitude = rise / localReach;
+          const turbulentCooling = (0.66 + Math.random() * 0.42 + altitude * 0.16) / localReach;
+          heat[y * cols + x] = Math.max(0, carried - turbulentCooling);
         }
       }
 
