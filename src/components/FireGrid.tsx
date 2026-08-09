@@ -136,11 +136,12 @@ const FireGrid = ({
       for (let x = 0; x < cols; x++) {
         // Several incommensurate waves produce narrow, continuously splitting
         // tongues instead of a single smooth dome or concentric heat blobs.
-        const tongue =
-          0.52 +
-          0.2 * Math.sin(x * 0.57 + t * 1.7) +
-          0.16 * Math.sin(x * 0.19 - t * 1.13) +
-          0.12 * Math.sin(x * 1.31 + t * 0.73);
+        const broad = 0.5 + 0.5 * Math.sin(x * 0.34 + t * 1.47);
+        const split = 0.5 + 0.5 * Math.sin(x * 0.83 - t * 1.91);
+        const sparks = 0.5 + 0.5 * Math.sin(x * 1.67 + t * 0.79);
+        // Multiplication makes peaks coincide only briefly, producing thin
+        // forks and sharp tips rather than overlapping circular humps.
+        const tongue = 0.22 + 0.78 * Math.pow(broad * 0.58 + split * sparks * 0.42, 2.35);
         let signal = 0.72;
 
         if (usable > 0) {
@@ -171,7 +172,7 @@ const FireGrid = ({
         // Every column gets a different, smoothly moving energy budget. The
         // slider scales the whole field rather than clipping it at a row, so a
         // reduced maximum height still has a pointed, lively silhouette.
-        const shape = Math.max(0.28, Math.min(1, tongue));
+        const shape = Math.max(0.18, Math.min(1, tongue));
         const audioLift = node ? 0.5 + signal * 0.5 : 0.82;
         reaches[x] = Math.max(2, rows * maxH * shape * audioLift);
       }
@@ -188,7 +189,9 @@ const FireGrid = ({
           const left = (y + 1) * cols + Math.max(0, sourceX - 1);
           const right = (y + 1) * cols + Math.min(cols - 1, sourceX + 1);
           const below2 = Math.min(rows - 1, y + 2) * cols + sourceX;
-          const carried = heat[below] * 0.52 + heat[left] * 0.16 + heat[right] * 0.16 + heat[below2] * 0.16;
+          // Keep a strong upward core; limited neighbour mixing preserves the
+          // narrow gaps between tongues instead of forming nested color blobs.
+          const carried = heat[below] * 0.66 + heat[left] * 0.09 + heat[right] * 0.09 + heat[below2] * 0.16;
           const localReach = Math.max(2, (reaches[x] + reaches[sourceX]) * 0.5);
           const altitude = rise / localReach;
           const turbulentCooling = (0.66 + Math.random() * 0.42 + altitude * 0.16) / localReach;
