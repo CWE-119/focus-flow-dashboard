@@ -28,13 +28,18 @@ const AudioVisualizer = () => {
   const [colored, setColored] = useState(false);
   const [mode, setMode] = useState<VizMode>("bars");
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
+  const [flameHeight, setFlameHeight] = useState(100);
+  const [balanced, setBalanced] = useState(false);
   const coloredRef = useRef(false);
+  const balancedRef = useRef(false);
+  const maxHeightRef = useRef(1);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const smoothedRef = useRef<Float32Array>(new Float32Array(BAR_COUNT));
+
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
