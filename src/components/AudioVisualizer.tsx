@@ -286,6 +286,7 @@ const AudioVisualizer = () => {
             className={`p-1 border border-border rounded transition-colors mr-1 ${mode === "fire" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             title={mode === "fire" ? "Fire mode on" : "Fire mode off"}
           >
+            <Flame className="h-3 w-3" />
 
           </button>
           <button
