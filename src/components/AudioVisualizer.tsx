@@ -341,7 +341,14 @@ const AudioVisualizer = () => {
 
       <div className="flex-1 relative min-h-0">
         {mode === "fire" ? (
-          <FireGrid analyser={analyserNode} cell={7} />
+          <FireGrid
+            analyser={analyserNode}
+            cell={7}
+            maxHeight={flameHeight / 100}
+            balanced={balanced}
+            fps={45}
+          />
+
         ) : (
           <canvas ref={canvasRef} className="w-full h-full block" />
         )}
