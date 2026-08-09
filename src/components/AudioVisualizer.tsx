@@ -249,12 +249,44 @@ const AudioVisualizer = () => {
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="p-1 border border-border rounded transition-colors mr-1 text-muted-foreground hover:text-foreground"
+                title="Flame height"
+              >
+                <Sliders className="h-3 w-3" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-52 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Max height
+                </span>
+                <span className="font-mono text-[10px] text-foreground">{flameHeight}%</span>
+              </div>
+              <Slider
+                value={[flameHeight]}
+                min={20}
+                max={100}
+                step={5}
+                onValueChange={(v) => changeFlameHeight(v[0])}
+              />
+            </PopoverContent>
+          </Popover>
+          <button
+            onClick={toggleBalanced}
+            className={`p-1 border border-border rounded transition-colors mr-1 ${balanced ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            title={balanced ? "Full-volume mode on" : "Full-volume mode off"}
+          >
+            <Volume2 className="h-3 w-3" />
+          </button>
           <button
             onClick={() => setMode((m) => (m === "fire" ? "bars" : "fire"))}
             className={`p-1 border border-border rounded transition-colors mr-1 ${mode === "fire" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
             title={mode === "fire" ? "Fire mode on" : "Fire mode off"}
           >
-            <Flame className="h-3 w-3" />
+
           </button>
           <button
             onClick={toggleColored}
