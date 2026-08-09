@@ -5,13 +5,13 @@ interface FireGridProps {
   analyser?: AnalyserNode | null;
   /** Dot spacing in CSS px. Small, ASCII-ish. */
   cell?: number;
+  /** Maximum flame height as a fraction of the grid height (0.2 - 1). */
+  maxHeight?: number;
+  /** Full-volume mode: flattens the spectrum so both sides react equally. */
+  balanced?: boolean;
+  /** Frame cap so the animation stays smooth on lower-end devices. */
+  fps?: number;
   className?: string;
-}
-
-// Parse "H S% L%" CSS variable into [h, s, l] numbers
-function parseCssHsl(val: string): [number, number, number] {
-  const parts = val.trim().split(/\s+/);
-  return [parseFloat(parts[0]) || 0, parseFloat(parts[1]) || 0, parseFloat(parts[2]) || 0];
 }
 
 /**
@@ -19,19 +19,38 @@ function parseCssHsl(val: string): [number, number, number] {
  * propagation simulation. Animates continuously on its own, and when an
  * AnalyserNode is provided the per-column heat is fed by audio frequencies.
  */
-const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
+const FireGrid = ({
+  analyser,
+  cell = 7,
+  maxHeight = 1,
+  balanced = false,
+  fps = 45,
+  className,
+}: FireGridProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const maxHeightRef = useRef(maxHeight);
+  const balancedRef = useRef(balanced);
+  const fpsRef = useRef(fps);
   const frameRef = useRef<number>(0);
 
   useEffect(() => {
     analyserRef.current = analyser ?? null;
   }, [analyser]);
+  useEffect(() => {
+    maxHeightRef.current = Math.min(1, Math.max(0.2, maxHeight));
+  }, [maxHeight]);
+  useEffect(() => {
+    balancedRef.current = balanced;
+  }, [balanced]);
+  useEffect(() => {
+    fpsRef.current = Math.max(15, Math.min(60, fps));
+  }, [fps]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let cols = 0;
@@ -44,16 +63,20 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
       if (w === 0 || h === 0) return;
-      canvas.width = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      cols = Math.max(4, Math.floor(w / cell));
-      rows = Math.max(4, Math.floor(h / cell));
-      heat = new Float32Array(cols * rows);
+      const nextW = Math.floor(w * dpr);
+      const nextH = Math.floor(h * dpr);
+      if (canvas.width !== nextW) canvas.width = nextW;
+      if (canvas.height !== nextH) canvas.height = nextH;
+      const nextCols = Math.max(4, Math.floor(w / cell));
+      const nextRows = Math.max(4, Math.floor(h / cell));
+      if (nextCols !== cols || nextRows !== rows) {
+        cols = nextCols;
+        rows = nextRows;
+        // Re-seed so flame scaling recomputes cleanly for the new height.
+        heat = new Float32Array(cols * rows);
+        smooth = new Float32Array(cols);
+      }
     };
-    resize();
-
-    const obs = new ResizeObserver(resize);
-    obs.observe(canvas);
 
     const FIRE: [number, number, number][] = [
       [6, 80, 38],
@@ -61,24 +84,35 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
       [30, 96, 55],
       [44, 100, 66],
     ];
+    const stops = FIRE;
 
-    const palette = () => FIRE;
-
-    let stops = palette();
-    let paletteTick = 0;
     let t = 0;
     let freq = new Uint8Array(0);
     let smooth = new Float32Array(0);
     let levelSmooth = 0;
+    let last = 0;
 
-    const tick = () => {
-      if (cols === 0 || rows === 0 || heat.length !== cols * rows) {
-        frameRef.current = requestAnimationFrame(tick);
-        return;
-      }
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    window.addEventListener("resize", resize);
 
-      if (paletteTick++ % 90 === 0) stops = palette();
-      t += 0.06;
+    // smooth easing curve (smoothstep) — avoids the flame flat-topping early
+    const ease = (v: number) => v * v * (3 - 2 * v);
+
+    const tick = (now: number) => {
+      frameRef.current = requestAnimationFrame(tick);
+
+      const interval = 1000 / fpsRef.current;
+      if (now - last < interval) return;
+      const dt = Math.min(3, (now - last) / interval || 1);
+      last = now;
+
+      if (cols === 0 || rows === 0 || heat.length !== cols * rows) return;
+
+      t += 0.06 * dt;
+      const maxH = maxHeightRef.current;
+      const bal = balancedRef.current;
 
       const node = analyserRef.current;
       let level = 0;
@@ -92,10 +126,9 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
 
       if (smooth.length !== cols) smooth = new Float32Array(cols);
 
-      // Seed the bottom row.
-      // Audio columns are mapped symmetrically: bass in the middle, treble at
-      // the edges, on a log scale with a high-frequency gain so the sides never
-      // sit flat while music is loud.
+      // Seed the bottom row. Audio columns are mapped symmetrically: bass in the
+      // middle, treble at the edges, on a log scale with high-frequency gain so
+      // the sides never sit flat while music is loud.
       const bottom = (rows - 1) * cols;
       const usable = freq.length > 0 ? Math.max(8, Math.floor(freq.length * 0.62)) : 0;
       const half = Math.max(1, (cols - 1) / 2);
@@ -107,25 +140,31 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
         if (usable > 0) {
           const u = Math.abs(x - (cols - 1) / 2) / half; // 0 center -> 1 edges
           const lo = Math.floor(Math.pow(usable, u * 0.999));
-          const hi = Math.min(usable - 1, Math.max(lo, Math.floor(Math.pow(usable, Math.min(1, u + 1 / cols) * 0.999))));
+          const hi = Math.min(
+            usable - 1,
+            Math.max(lo, Math.floor(Math.pow(usable, Math.min(1, u + 1 / cols) * 0.999)))
+          );
           let band = 0;
           for (let i = lo; i <= hi; i++) band = Math.max(band, freq[i]);
           band /= 255;
           // Tilt gain upward toward the edges (highs) to offset spectral rolloff.
-          const gain = 1 + 2.2 * u * u;
-          const target = Math.min(1, Math.pow(band * gain, 0.62));
+          // Full-volume mode flattens it fully so both sides match the centre.
+          const gain = bal ? 1 + 5 * u * u : 1 + 2.2 * u * u;
+          let target = Math.min(1, Math.pow(band * gain, bal ? 0.45 : 0.62));
+          if (bal) target = Math.max(target, levelSmooth * 0.85);
           smooth[x] = Math.max(target, smooth[x] * 0.82);
           seed = Math.min(1, smooth[x] * 1.05 + levelSmooth * 0.3 + wave * 0.18);
         }
 
-        heat[bottom + x] = Math.min(1, seed);
+        heat[bottom + x] = Math.min(1, ease(Math.min(1, seed)) * 0.35 + seed * 0.65);
       }
 
-      // Propagate upwards with cooling scaled to the grid height so full flames
-      // can actually reach the top row.
-      const budget = node ? 0.62 - 0.34 * levelSmooth : 0.55;
-      const cooling = budget / rows;
-      const drag = 0.02 / rows;
+      // Propagate upwards. Cooling is scaled to the *reachable* height so a full
+      // seed reaches exactly maxHeight of the grid instead of dying early.
+      const reach = Math.max(2, rows * maxH);
+      const budget = node ? 0.98 - 0.18 * levelSmooth : 0.9;
+      const cooling = budget / reach;
+      const drag = 0.02 / reach;
 
       for (let y = rows - 2; y >= 0; y--) {
         for (let x = 0; x < cols; x++) {
@@ -139,29 +178,36 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
         }
       }
 
-
-      // Draw
+      // Draw — batch by palette index to minimise fillStyle changes.
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
       const dot = Math.max(2, cell - 3);
       const offset = (cell - dot) / 2;
 
+      ctx.fillStyle = "hsl(0 0% 50% / 0.10)";
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
-          const v = heat[y * cols + x];
-          if (v < 0.06) {
-            ctx.fillStyle = "hsl(0 0% 50% / 0.10)";
+          if (heat[y * cols + x] < 0.06) {
             ctx.fillRect(x * cell + offset, y * cell + offset, dot, dot);
-            continue;
           }
-          const idx = Math.min(stops.length - 1, Math.floor(v * stops.length));
-          const [h, s, l] = stops[idx];
-          ctx.fillStyle = `hsl(${h}, ${s}%, ${l}%, ${Math.min(1, 0.35 + v)})`;
-          ctx.fillRect(x * cell + offset, y * cell + offset, dot, dot);
         }
       }
 
-      frameRef.current = requestAnimationFrame(tick);
+      for (let s = 0; s < stops.length; s++) {
+        const [h, sat, li] = stops[s];
+        ctx.fillStyle = `hsl(${h}, ${sat}%, ${li}%)`;
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            const v = heat[y * cols + x];
+            if (v < 0.06) continue;
+            const idx = Math.min(stops.length - 1, Math.floor(v * stops.length));
+            if (idx !== s) continue;
+            ctx.globalAlpha = Math.min(1, 0.35 + v);
+            ctx.fillRect(x * cell + offset, y * cell + offset, dot, dot);
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
     };
 
     frameRef.current = requestAnimationFrame(tick);
@@ -169,6 +215,7 @@ const FireGrid = ({ analyser, cell = 7, className }: FireGridProps) => {
     return () => {
       cancelAnimationFrame(frameRef.current);
       obs.disconnect();
+      window.removeEventListener("resize", resize);
     };
   }, [cell]);
 
