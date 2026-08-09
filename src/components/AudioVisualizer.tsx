@@ -207,10 +207,21 @@ const AudioVisualizer = () => {
     setColored((v) => !v);
   };
 
+  const toggleBalanced = () => {
+    balancedRef.current = !balancedRef.current;
+    setBalanced((v) => !v);
+  };
+
+  const changeFlameHeight = (v: number) => {
+    maxHeightRef.current = Math.max(0.2, v / 100);
+    setFlameHeight(v);
+  };
+
   const start = () => {
     if (source === "mic") startMic();
     else startSystem();
   };
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
