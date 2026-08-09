@@ -73,9 +73,23 @@ const AudioVisualizer = () => {
     const smoothed = smoothedRef.current;
 
     const step = Math.floor(data.length / BAR_COUNT);
+    const bal = balancedRef.current;
+    const maxH = maxHeightRef.current;
+
+    // Overall loudness — used in full-volume mode as a floor so the high-end
+    // (right side) never sits flat while music is loud.
+    let level = 0;
+    for (let i = 0; i < data.length; i++) level += data[i];
+    level = level / (data.length * 255);
 
     for (let i = 0; i < BAR_COUNT; i++) {
-      const raw = data[i * step] / 255;
+      const u = i / (BAR_COUNT - 1); // 0 = bass, 1 = treble
+      let raw = data[i * step] / 255;
+      if (bal) {
+        // Flatten spectral rolloff, then floor with overall level.
+        raw = Math.min(1, raw * (1 + 5 * u * u));
+        raw = Math.max(raw, level * 0.85);
+      }
 
       // Fast attack, slow decay
       smoothed[i] = raw > smoothed[i]
@@ -83,8 +97,8 @@ const AudioVisualizer = () => {
         : smoothed[i] + (raw - smoothed[i]) * 0.12;
 
       // Power curve — makes quiet parts more visible, loud parts more dramatic
-      const val = Math.pow(smoothed[i], 0.65);
-      const barH = val * h * 0.92;
+      const val = Math.pow(smoothed[i], bal ? 0.45 : 0.65);
+      const barH = val * h * 0.92 * maxH;
       const x = i * barW;
 
       if (coloredRef.current) {
@@ -98,6 +112,7 @@ const AudioVisualizer = () => {
 
     animFrameRef.current = requestAnimationFrame(draw);
   }, []);
+
 
   const stop = useCallback(() => {
     cancelAnimationFrame(animFrameRef.current);
