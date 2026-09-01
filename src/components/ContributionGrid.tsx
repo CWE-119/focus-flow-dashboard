@@ -138,11 +138,16 @@ const ContributionGrid = () => {
                     <div key={weekIdx} className="flex gap-0.5 md:gap-1">
                       {week.map((day, dayIdx) => {
                         const dayHasReminder = hasReminder(day.date);
+                        const dayDeadlines = byDateKey.get(formatLocalDateKey(day.date)) ?? [];
                         return (
                           <div
                             key={dayIdx}
                             className={`w-2 h-2 md:w-3 md:h-3 relative ${getLevelClass(day.level)} transition-all hover:ring-1 hover:ring-foreground cursor-pointer rounded-sm`}
-                            title={`${day.date.getDate()} - ${day.level} hour${day.level !== 1 ? "s" : ""}${dayHasReminder ? " • Has reminder" : ""}`}
+                            title={`${day.date.getDate()} - ${day.level} hour${day.level !== 1 ? "s" : ""}${dayHasReminder ? " • Has reminder" : ""}${
+                              dayDeadlines.length
+                                ? `\nDue: ${dayDeadlines.map((d) => d.title).join(", ")}`
+                                : ""
+                            }`}
                             onClick={() => {
                               if (dayHasReminder) {
                                 setSelectedDay(day);
@@ -154,6 +159,9 @@ const ContributionGrid = () => {
                           >
                             {dayHasReminder && (
                               <div className="absolute inset-0 bg-destructive rounded-sm animate-pulse opacity-70" />
+                            )}
+                            {dayDeadlines.length > 0 && (
+                              <span className="pointer-events-none absolute -right-[1px] -top-[1px] h-1 w-1 rounded-full bg-primary ring-1 ring-card md:h-1.5 md:w-1.5" />
                             )}
                           </div>
                         );
