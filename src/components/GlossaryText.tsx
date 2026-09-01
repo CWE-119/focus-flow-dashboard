@@ -66,6 +66,7 @@ const TermChip = ({ piece }: { piece: Piece }) => {
   return (
     <span className="group/term relative inline-block">
       <span
+        title={`${piece.term?.term ?? piece.text} — ${description}`}
         className={cn(
           "cursor-help border-b border-dashed border-primary/60 bg-primary/10 px-0.5 text-foreground transition-colors group-hover/term:bg-primary/20",
           piece.override && "border-amber-500/70 bg-amber-500/10 group-hover/term:bg-amber-500/20"
