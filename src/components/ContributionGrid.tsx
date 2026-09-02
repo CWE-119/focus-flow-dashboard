@@ -22,6 +22,7 @@ const ContributionGrid = () => {
   const [reminderPopupOpen, setReminderPopupOpen] = useState(false);
   const { sessions } = useSession();
   const { reminders, getRemindersByDate } = useReminders();
+  const { byDateKey } = useDeadlines();
 
   // Generate data for all 12 months in calendar year order
   const today = new Date();
