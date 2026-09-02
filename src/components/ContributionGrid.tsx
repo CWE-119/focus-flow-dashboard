@@ -121,6 +121,9 @@ const ContributionGrid = () => {
               ))}
             </div>
             <span className="font-body text-[10px] md:text-xs text-muted-foreground">More</span>
+            <span className="ml-2 flex items-center gap-1 font-body text-[10px] md:text-xs text-muted-foreground">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Due date
+            </span>
           </div>
         </div>
 

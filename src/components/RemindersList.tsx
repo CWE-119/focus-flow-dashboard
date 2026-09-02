@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useReminders } from "@/contexts/RemindersContext";
 import { Button } from "@/components/ui/button";
+import { GlossaryText } from "@/components/GlossaryText";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, Bell, Clock, Maximize2, Minimize2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -57,7 +58,7 @@ const AnimatedReminder = ({ reminder, onToggle, onDelete, index }: AnimatedRemin
             reminder.completed ? "line-through text-muted-foreground" : "text-foreground"
           }`}
         >
-          {reminder.title}
+          <GlossaryText>{reminder.title}</GlossaryText>
         </motion.span>
         <span className={`font-body text-xs flex items-center gap-1 mt-0.5 ${
           isOverdue ? "text-destructive" : "text-muted-foreground"

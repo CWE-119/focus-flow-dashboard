@@ -1,6 +1,7 @@
 import React, { forwardRef, useCallback, useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GlossaryText } from "@/components/GlossaryText";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit2, Plus, X, Repeat, Flag, Settings2, Tag, Maximize2, Minimize2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -103,7 +104,7 @@ const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, cate
             animateOnHover={true}
             className={cn("font-body text-sm truncate", todo.completed && "opacity-50")}
           >
-            <span className={todo.completed ? "line-through" : ""}>{title}</span>
+            <span className={todo.completed ? "line-through" : ""}><GlossaryText>{title}</GlossaryText></span>
           </GradientText>
         ) : (
           <motion.span
@@ -114,7 +115,7 @@ const AnimatedTodo = forwardRef<HTMLDivElement, AnimatedTodoProps>(({ todo, cate
               todo.completed ? "line-through text-muted-foreground" : "text-foreground"
             )}
           >
-            {title}
+            <GlossaryText>{title}</GlossaryText>
           </motion.span>
         )}
         {hasRepeat && <Repeat className="w-3 h-3 text-muted-foreground shrink-0" />}
