@@ -10,6 +10,7 @@ import { useSession, Session } from "@/contexts/SessionContext";
 import { useReminders } from "@/contexts/RemindersContext";
 import { ReminderPopup } from "./ReminderPopup";
 import { formatLocalDateKey } from "@/lib/api";
+import { useDeadlines } from "@/hooks/use-deadlines";
 
 interface DayData {
   level: number;
