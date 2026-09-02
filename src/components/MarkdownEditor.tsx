@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import { glossifyChildren } from "@/components/GlossaryText";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -1129,6 +1130,10 @@ const MarkdownEditor = ({
                         {children}
                       </a>
                     ),
+                    p: ({ children }) => <p>{glossifyChildren(children)}</p>,
+                    li: ({ children }) => <li>{glossifyChildren(children)}</li>,
+                    td: ({ children }) => <td>{glossifyChildren(children)}</td>,
+                    blockquote: ({ children }) => <blockquote>{glossifyChildren(children)}</blockquote>,
                     video: (props) => (
                       <video {...props} className="max-w-full rounded-lg" controls />
                     ),

@@ -339,6 +339,10 @@ const NotesContent = () => {
               <PenTool className="w-4 h-4 mr-2" />
               Canvas
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setGlossaryOpen(true)}>
+              <BookMarked className="mr-2 h-4 w-4" />
+              Noted words
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/help")}>
               <HelpCircle className="w-4 h-4 mr-2" />
               Help
