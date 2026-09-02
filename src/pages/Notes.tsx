@@ -521,6 +521,8 @@ const NotesContent = () => {
           </CommandGroup>
         </CommandList>
       </CommandDialog>
+
+      <GlossaryManager isOpen={glossaryOpen} onOpenChange={setGlossaryOpen} />
     </div>
   );
 };
