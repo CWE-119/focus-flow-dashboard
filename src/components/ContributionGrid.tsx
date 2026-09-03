@@ -127,24 +127,24 @@ const ContributionGrid = () => {
           </div>
         </div>
 
-        {/* Multiple months grid */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {/* Months laid out compactly and spread evenly across the row */}
+        <div className="flex flex-wrap justify-between gap-x-5 gap-y-5">
           {months.map((monthData, monthIdx) => (
-            <div key={monthIdx} className="flex flex-col gap-2">
+            <div key={monthIdx} className="flex shrink-0 flex-col gap-1.5">
               {/* Month label */}
               <span className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
                 {monthData.monthName}
               </span>
 
-              {/* Fluid 7-column month grid */}
-              <div className="grid grid-cols-7 gap-[3px] md:gap-1">
+              {/* 7-column month grid with fixed cell size */}
+              <div className="grid w-max grid-cols-7 gap-0.5 md:gap-1">
                 {monthData.data.map((day, dayIdx) => {
                   const dayHasReminder = hasReminder(day.date);
                   const dayDeadlines = byDateKey.get(formatLocalDateKey(day.date)) ?? [];
                   return (
                     <div
                       key={dayIdx}
-                      className={`relative aspect-square w-full ${getLevelClass(day.level)} transition-all hover:ring-1 hover:ring-foreground cursor-pointer rounded-sm`}
+                      className={`relative h-2 w-2 md:h-3 md:w-3 ${getLevelClass(day.level)} transition-all hover:ring-1 hover:ring-foreground cursor-pointer rounded-sm`}
                       title={`${day.date.getDate()} - ${day.level} hour${day.level !== 1 ? "s" : ""}${dayHasReminder ? " • Has reminder" : ""}${
                         dayDeadlines.length
                           ? `\nDue: ${dayDeadlines.map((d) => d.title).join(", ")}`
@@ -168,14 +168,11 @@ const ContributionGrid = () => {
                     </div>
                   );
                 })}
-                {/* trailing placeholders keep every month block the same shape */}
-                {Array.from({ length: (7 - (monthData.data.length % 7)) % 7 }).map((_, i) => (
-                  <div key={`pad-${i}`} className="aspect-square w-full" />
-                ))}
               </div>
             </div>
           ))}
         </div>
+
       </div>
 
 
