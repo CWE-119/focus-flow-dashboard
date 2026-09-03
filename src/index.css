@@ -646,7 +646,6 @@
 }
 
 .sidebar-scroll {
-
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -654,4 +653,32 @@
 .sidebar-scroll::-webkit-scrollbar {
   width: 0;
   height: 0;
+}
+
+/* Global minimal accent scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--accent) / 0.45);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent) / 0.75);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--accent) / 0.45) transparent;
 }
