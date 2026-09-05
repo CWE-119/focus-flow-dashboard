@@ -127,54 +127,58 @@ const ContributionGrid = () => {
           </div>
         </div>
 
-        {/* Months laid out compactly and spread evenly across the row */}
-        <div className="flex flex-wrap justify-between gap-x-5 gap-y-5">
-          {months.map((monthData, monthIdx) => (
-            <div key={monthIdx} className="flex shrink-0 flex-col gap-1.5">
-              {/* Month label */}
-              <span className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
-                {monthData.monthName}
-              </span>
-
-              {/* 7-column month grid with fixed cell size */}
-              <div className="grid w-max grid-cols-7 gap-0.5 md:gap-1">
-                {monthData.data.map((day, dayIdx) => {
-                  const dayHasReminder = hasReminder(day.date);
-                  const dayDeadlines = byDateKey.get(formatLocalDateKey(day.date)) ?? [];
-                  return (
-                    <div
-                      key={dayIdx}
-                      className={`relative h-2 w-2 md:h-3 md:w-3 ${getLevelClass(day.level)} transition-all hover:ring-1 hover:ring-foreground cursor-pointer rounded-sm`}
-                      title={`${day.date.getDate()} - ${day.level} hour${day.level !== 1 ? "s" : ""}${dayHasReminder ? " • Has reminder" : ""}${
-                        dayDeadlines.length
-                          ? `\nDue: ${dayDeadlines.map((d) => d.title).join(", ")}`
-                          : ""
-                      }`}
-                      onClick={() => {
-                        if (dayHasReminder) {
-                          setSelectedDay(day);
-                          setReminderPopupOpen(true);
-                        } else {
-                          setSelectedDay(day);
-                        }
-                      }}
-                    >
-                      {dayHasReminder && (
-                        <div className="absolute inset-0 bg-destructive rounded-sm animate-pulse opacity-70" />
-                      )}
-                      {dayDeadlines.length > 0 && (
-                        <span className="pointer-events-none absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-1 ring-card md:h-1.5 md:w-1.5" />
-                      )}
+        {/* Multiple months grid */}
+        <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4" style={{ minWidth: 'max-content' }}>
+            {months.map((monthData, monthIdx) => (
+              <div key={monthIdx} className="flex flex-col gap-1">
+                {/* Month label */}
+                <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
+                  {monthData.monthName}
+                </span>
+                
+                {/* 4-column grid - days go left to right */}
+                <div className="flex flex-col gap-0.5 md:gap-1">
+                  {monthData.weeks.map((week, weekIdx) => (
+                    <div key={weekIdx} className="flex gap-0.5 md:gap-1">
+                      {week.map((day, dayIdx) => {
+                        const dayHasReminder = hasReminder(day.date);
+                        const dayDeadlines = byDateKey.get(formatLocalDateKey(day.date)) ?? [];
+                        return (
+                          <div
+                            key={dayIdx}
+                            className={`w-2 h-2 md:w-3 md:h-3 relative ${getLevelClass(day.level)} transition-all hover:ring-1 hover:ring-foreground cursor-pointer rounded-sm`}
+                            title={`${day.date.getDate()} - ${day.level} hour${day.level !== 1 ? "s" : ""}${dayHasReminder ? " • Has reminder" : ""}${
+                              dayDeadlines.length
+                                ? `\nDue: ${dayDeadlines.map((d) => d.title).join(", ")}`
+                                : ""
+                            }`}
+                            onClick={() => {
+                              if (dayHasReminder) {
+                                setSelectedDay(day);
+                                setReminderPopupOpen(true);
+                              } else {
+                                setSelectedDay(day);
+                              }
+                            }}
+                          >
+                            {dayHasReminder && (
+                              <div className="absolute inset-0 bg-destructive rounded-sm animate-pulse opacity-70" />
+                            )}
+                            {dayDeadlines.length > 0 && (
+                              <span className="pointer-events-none absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-1 ring-card md:h-1.5 md:w-1.5" />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-
       </div>
-
 
       <Dialog open={!!selectedDay && !reminderPopupOpen} onOpenChange={() => setSelectedDay(null)}>
         <DialogContent className="sm:max-w-md">
