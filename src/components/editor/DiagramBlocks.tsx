@@ -105,7 +105,7 @@ const MermaidDiagramComponent = ({ code, isDark }: MermaidDiagramProps) => {
     return () => {
       cancelled = true;
     };
-  }, [code, isDark, reactId, shouldRender]);
+  }, [cacheKey, code, isDark, reactId, shouldRender]);
 
   if (error) {
     return (

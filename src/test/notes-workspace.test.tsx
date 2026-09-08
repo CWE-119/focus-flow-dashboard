@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "@/lib/router";
 import Notes from "@/pages/Notes";
 
 vi.mock("@/contexts/NoteTimerContext", () => ({
@@ -90,7 +90,7 @@ describe("Notes workspace smoke", () => {
 
   it("loads folders and notes from the backend contract", async () => {
     render(
-      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <MemoryRouter>
         <Notes />
       </MemoryRouter>
     );

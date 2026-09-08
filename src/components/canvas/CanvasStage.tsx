@@ -38,6 +38,8 @@ export const CanvasStage = ({
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
+  const loadedImageSrcRef = useRef(new Map<string, string>());
+  const loadingImageSrcRef = useRef(new Map<string, string>());
 
   // Resize handler
   useEffect(() => {
@@ -57,18 +59,37 @@ export const CanvasStage = ({
   // Load images
   useEffect(() => {
     const imageNodes = nodes.filter((n): n is ImageNode => n.type === 'image');
-    imageNodes.forEach(node => {
-      if (!loadedImages.find(li => li.id === node.id)) {
-        const img = new window.Image();
-        img.crossOrigin = 'anonymous';
-        img.src = node.src;
-        img.onload = () => {
-          setLoadedImages(prev => [...prev.filter(li => li.id !== node.id), { id: node.id, image: img }]);
-        };
-      }
+    const imageNodeIds = new Set(imageNodes.map((node) => node.id));
+
+    for (const id of loadedImageSrcRef.current.keys()) {
+      if (!imageNodeIds.has(id)) loadedImageSrcRef.current.delete(id);
+    }
+    for (const id of loadingImageSrcRef.current.keys()) {
+      if (!imageNodeIds.has(id)) loadingImageSrcRef.current.delete(id);
+    }
+
+    setLoadedImages(prev => {
+      const next = prev.filter(li => imageNodeIds.has(li.id));
+      return next.length === prev.length ? prev : next;
     });
-    // Clean up removed images
-    setLoadedImages(prev => prev.filter(li => imageNodes.some(n => n.id === li.id)));
+
+    imageNodes.forEach(node => {
+      if (loadedImageSrcRef.current.get(node.id) === node.src) return;
+      if (loadingImageSrcRef.current.get(node.id) === node.src) return;
+
+      loadingImageSrcRef.current.set(node.id, node.src);
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.src = node.src;
+      img.onload = () => {
+        loadingImageSrcRef.current.delete(node.id);
+        loadedImageSrcRef.current.set(node.id, node.src);
+        setLoadedImages(prev => [...prev.filter(li => li.id !== node.id), { id: node.id, image: img }]);
+      };
+      img.onerror = () => {
+        loadingImageSrcRef.current.delete(node.id);
+      };
+    });
   }, [nodes]);
 
   // Update transformer

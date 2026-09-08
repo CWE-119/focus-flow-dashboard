@@ -5,6 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const { registerDeadlineIntegrations } = require('./deadline-integrations.cjs');
 const app = express();
 
 // Middleware
@@ -164,6 +165,26 @@ const db = new sqlite3.Database(dbPath, (err) => {
       data TEXT NOT NULL,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS deadlines (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      context TEXT,
+      source TEXT NOT NULL DEFAULT 'manual',
+      start TEXT,
+      end TEXT NOT NULL,
+      url TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS glossary_terms (
+      id TEXT PRIMARY KEY,
+      term TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      description TEXT,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `;
 
   db.exec(initSQL, (err) => {
@@ -218,6 +239,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
         'CREATE INDEX IF NOT EXISTS idx_note_links_target_normalized ON note_links(targetNormalized)',
         'CREATE INDEX IF NOT EXISTS idx_note_mentions_source ON note_mentions(sourceNoteId)',
         'CREATE INDEX IF NOT EXISTS idx_note_mentions_target ON note_mentions(targetNoteId)',
+        'CREATE INDEX IF NOT EXISTS idx_deadlines_end ON deadlines(end)',
+        'CREATE INDEX IF NOT EXISTS idx_deadlines_source_end ON deadlines(source, end)',
+        'CREATE INDEX IF NOT EXISTS idx_glossary_terms_term ON glossary_terms(term COLLATE NOCASE)',
         `INSERT OR IGNORE INTO categories (id, name, color)
          SELECT 'cat-work', 'Work', '#5ca8e0'
          WHERE NOT EXISTS (SELECT 1 FROM schema_migrations WHERE id = '004_task_categories')
@@ -354,9 +378,29 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 const CATEGORY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const CATEGORY_COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
+const TEXT_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const DEADLINE_SOURCES = new Set(['google', 'canvas', 'manual']);
 
 function createCategoryId() {
   return `cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createTextId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeOptionalText(value, maxLength) {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  return text.slice(0, maxLength);
+}
+
+function normalizeIsoDate(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
 }
 
 function validateCategoryId(categoryId, res, done) {
@@ -512,6 +556,245 @@ app.delete('/api/categories/:id', (req, res) => {
         });
       });
     });
+  });
+});
+
+// Deadlines
+function parseDeadlinePayload(req, res, partial = false) {
+  const result = {};
+
+  if (!partial || req.body.title !== undefined) {
+    const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+    if (!title || title.length > 160) {
+      res.status(400).json({ error: 'Deadline title must be between 1 and 160 characters' });
+      return null;
+    }
+    result.title = title;
+  }
+
+  if (!partial || req.body.source !== undefined) {
+    const source = req.body.source === undefined ? 'manual' : String(req.body.source).trim();
+    if (!DEADLINE_SOURCES.has(source)) {
+      res.status(400).json({ error: 'Deadline source must be google, canvas, or manual' });
+      return null;
+    }
+    result.source = source;
+  }
+
+  if (!partial || req.body.end !== undefined) {
+    const end = normalizeIsoDate(req.body.end);
+    if (!end) {
+      res.status(400).json({ error: 'Deadline end must be a valid date' });
+      return null;
+    }
+    result.end = end;
+  }
+
+  if (req.body.start !== undefined) {
+    const start = normalizeIsoDate(req.body.start);
+    if (req.body.start && !start) {
+      res.status(400).json({ error: 'Deadline start must be a valid date' });
+      return null;
+    }
+    result.start = start;
+  } else if (!partial) {
+    result.start = null;
+  }
+
+  if (req.body.context !== undefined) {
+    result.context = normalizeOptionalText(req.body.context, 120);
+  } else if (!partial) {
+    result.context = null;
+  }
+
+  if (req.body.url !== undefined) {
+    result.url = normalizeOptionalText(req.body.url, 500);
+  } else if (!partial) {
+    result.url = null;
+  }
+
+  return result;
+}
+
+registerDeadlineIntegrations(app, dbPath);
+
+app.get('/api/deadlines', (_req, res) => {
+  db.all('SELECT * FROM deadlines ORDER BY datetime(end) ASC, title COLLATE NOCASE ASC', (err, rows) => {
+    if (err) {
+      console.error('Error fetching deadlines:', err);
+      return res.status(500).json({ error: 'Failed to fetch deadlines' });
+    }
+    res.json(rows || []);
+  });
+});
+
+app.post('/api/deadlines', (req, res) => {
+  const id = req.body.id === undefined ? createTextId('deadline') : String(req.body.id).trim();
+  if (!TEXT_ID_PATTERN.test(id)) {
+    return res.status(400).json({ error: 'Invalid deadline id' });
+  }
+
+  const deadline = parseDeadlinePayload(req, res);
+  if (!deadline) return;
+
+  db.run(
+    `INSERT INTO deadlines (id, title, context, source, start, end, url)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, deadline.title, deadline.context, deadline.source, deadline.start, deadline.end, deadline.url],
+    function(err) {
+      if (err) {
+        if (err.code === 'SQLITE_CONSTRAINT') {
+          return res.status(409).json({ error: 'Deadline id already exists' });
+        }
+        console.error('Error creating deadline:', err);
+        return res.status(500).json({ error: 'Failed to create deadline' });
+      }
+      db.get('SELECT * FROM deadlines WHERE id = ?', [id], (fetchErr, row) => {
+        if (fetchErr) return res.status(500).json({ error: 'Failed to fetch created deadline' });
+        res.status(201).json(row);
+      });
+    }
+  );
+});
+
+app.put('/api/deadlines/:id', (req, res) => {
+  const deadline = parseDeadlinePayload(req, res, true);
+  if (!deadline) return;
+
+  const updates = [];
+  const values = [];
+  Object.entries(deadline).forEach(([key, value]) => {
+    updates.push(`${key} = ?`);
+    values.push(value);
+  });
+
+  if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+  updates.push('updatedAt = CURRENT_TIMESTAMP');
+  values.push(req.params.id);
+
+  db.run(`UPDATE deadlines SET ${updates.join(', ')} WHERE id = ?`, values, function(err) {
+    if (err) {
+      console.error('Error updating deadline:', err);
+      return res.status(500).json({ error: 'Failed to update deadline' });
+    }
+    if (this.changes === 0) return res.status(404).json({ error: 'Deadline not found' });
+    db.get('SELECT * FROM deadlines WHERE id = ?', [req.params.id], (fetchErr, row) => {
+      if (fetchErr) return res.status(500).json({ error: 'Failed to fetch updated deadline' });
+      res.json(row);
+    });
+  });
+});
+
+app.delete('/api/deadlines/:id', (req, res) => {
+  db.run('DELETE FROM deadlines WHERE id = ?', [req.params.id], function(err) {
+    if (err) {
+      console.error('Error deleting deadline:', err);
+      return res.status(500).json({ error: 'Failed to delete deadline' });
+    }
+    if (this.changes === 0) return res.status(404).json({ error: 'Deadline not found' });
+    res.json({ success: true });
+  });
+});
+
+// Glossary terms
+function parseGlossaryPayload(req, res, partial = false) {
+  const result = {};
+
+  if (!partial || req.body.term !== undefined) {
+    const term = typeof req.body.term === 'string' ? req.body.term.trim() : '';
+    if (!term || term.length > 80) {
+      res.status(400).json({ error: 'Glossary term must be between 1 and 80 characters' });
+      return null;
+    }
+    result.term = term;
+  }
+
+  if (!partial || req.body.description !== undefined) {
+    result.description = normalizeOptionalText(req.body.description, 1000) || '';
+  }
+
+  return result;
+}
+
+app.get('/api/glossary', (_req, res) => {
+  db.all('SELECT * FROM glossary_terms ORDER BY term COLLATE NOCASE ASC', (err, rows) => {
+    if (err) {
+      console.error('Error fetching glossary terms:', err);
+      return res.status(500).json({ error: 'Failed to fetch glossary terms' });
+    }
+    res.json(rows || []);
+  });
+});
+
+app.post('/api/glossary', (req, res) => {
+  const id = req.body.id === undefined ? createTextId('glossary') : String(req.body.id).trim();
+  if (!TEXT_ID_PATTERN.test(id)) {
+    return res.status(400).json({ error: 'Invalid glossary id' });
+  }
+
+  const term = parseGlossaryPayload(req, res);
+  if (!term) return;
+
+  db.run(
+    'INSERT INTO glossary_terms (id, term, description) VALUES (?, ?, ?)',
+    [id, term.term, term.description],
+    function(err) {
+      if (err) {
+        if (err.code === 'SQLITE_CONSTRAINT') {
+          return res.status(409).json({ error: 'Glossary term already exists' });
+        }
+        console.error('Error creating glossary term:', err);
+        return res.status(500).json({ error: 'Failed to create glossary term' });
+      }
+      db.get('SELECT * FROM glossary_terms WHERE id = ?', [id], (fetchErr, row) => {
+        if (fetchErr) return res.status(500).json({ error: 'Failed to fetch created glossary term' });
+        res.status(201).json(row);
+      });
+    }
+  );
+});
+
+app.put('/api/glossary/:id', (req, res) => {
+  const term = parseGlossaryPayload(req, res, true);
+  if (!term) return;
+
+  const updates = [];
+  const values = [];
+  Object.entries(term).forEach(([key, value]) => {
+    updates.push(`${key} = ?`);
+    values.push(value);
+  });
+
+  if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+  updates.push('updatedAt = CURRENT_TIMESTAMP');
+  values.push(req.params.id);
+
+  db.run(`UPDATE glossary_terms SET ${updates.join(', ')} WHERE id = ?`, values, function(err) {
+    if (err) {
+      if (err.code === 'SQLITE_CONSTRAINT') {
+        return res.status(409).json({ error: 'Glossary term already exists' });
+      }
+      console.error('Error updating glossary term:', err);
+      return res.status(500).json({ error: 'Failed to update glossary term' });
+    }
+    if (this.changes === 0) return res.status(404).json({ error: 'Glossary term not found' });
+    db.get('SELECT * FROM glossary_terms WHERE id = ?', [req.params.id], (fetchErr, row) => {
+      if (fetchErr) return res.status(500).json({ error: 'Failed to fetch updated glossary term' });
+      res.json(row);
+    });
+  });
+});
+
+app.delete('/api/glossary/:id', (req, res) => {
+  db.run('DELETE FROM glossary_terms WHERE id = ?', [req.params.id], function(err) {
+    if (err) {
+      console.error('Error deleting glossary term:', err);
+      return res.status(500).json({ error: 'Failed to delete glossary term' });
+    }
+    if (this.changes === 0) return res.status(404).json({ error: 'Glossary term not found' });
+    res.json({ success: true });
   });
 });
 

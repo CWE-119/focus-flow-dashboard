@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import { NotesProvider, useNotes } from "@/contexts/NotesContext";
 import { useNoteTimerActions } from "@/contexts/NoteTimerContext";
 import FoldersSidebar from "@/components/FoldersSidebar";

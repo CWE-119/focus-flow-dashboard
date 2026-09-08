@@ -161,6 +161,84 @@ export const remindersAPI = {
     }),
 };
 
+// DEADLINES API
+export type DeadlineSource = 'google' | 'canvas' | 'manual';
+
+export interface Deadline {
+  id: string;
+  title: string;
+  context?: string | null;
+  source: DeadlineSource;
+  end: string;
+  start?: string | null;
+  url?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const deadlinesAPI = {
+  getAll: () => fetchAPI<Deadline[]>('/deadlines'),
+  create: (deadline: Omit<Deadline, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }) =>
+    fetchAPI<Deadline>('/deadlines', {
+      method: 'POST',
+      body: JSON.stringify(deadline),
+    }),
+  update: (id: string, updates: Partial<Omit<Deadline, 'id' | 'createdAt' | 'updatedAt'>>) =>
+    fetchAPI<Deadline>(`/deadlines/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+  delete: (id: string) =>
+    fetchAPI<void>(`/deadlines/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+export type DeadlineProvider = 'canvas' | 'google';
+export interface DeadlineConnection {
+  provider: DeadlineProvider;
+  configured: boolean;
+  settings: { baseUrl?: string; calendarId?: string; authMode?: 'apiKey' | 'accessToken' };
+  lastSyncedAt: string | null;
+}
+
+export const deadlineIntegrationsAPI = {
+  getAll: () => fetchAPI<DeadlineConnection[]>('/integrations/deadlines'),
+  save: (provider: DeadlineProvider, settings: DeadlineConnection['settings'] & { credential?: string }) =>
+    fetchAPI<DeadlineConnection[]>(`/integrations/deadlines/${provider}`, { method: 'PUT', body: JSON.stringify(settings) }),
+  sync: (provider: DeadlineProvider) =>
+    fetchAPI<{ count: number; lastSyncedAt: string }>(`/integrations/deadlines/${provider}/sync`, { method: 'POST', body: '{}' }),
+  disconnect: (provider: DeadlineProvider) =>
+    fetchAPI<DeadlineConnection[]>(`/integrations/deadlines/${provider}`, { method: 'DELETE' }),
+};
+
+// GLOSSARY API
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  description: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export const glossaryAPI = {
+  getAll: () => fetchAPI<GlossaryTerm[]>('/glossary'),
+  create: (term: string, description: string, id?: string) =>
+    fetchAPI<GlossaryTerm>('/glossary', {
+      method: 'POST',
+      body: JSON.stringify({ term, description, ...(id ? { id } : {}) }),
+    }),
+  update: (id: string, updates: Partial<Pick<GlossaryTerm, 'term' | 'description'>>) =>
+    fetchAPI<GlossaryTerm>(`/glossary/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+  delete: (id: string) =>
+    fetchAPI<void>(`/glossary/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
 // HISTORY API
 export const historyAPI = {
   getAll: () => fetchAPI<any[]>('/history'),

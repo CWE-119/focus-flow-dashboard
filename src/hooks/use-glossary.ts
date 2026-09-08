@@ -1,24 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { glossaryAPI, type GlossaryTerm } from "@/lib/api";
 
-export interface GlossaryTerm {
-  id: string;
-  term: string;
-  description: string;
-  createdAt: string;
-}
+export type { GlossaryTerm } from "@/lib/api";
 
 const STORAGE_KEY = "focusflow:glossary";
 const EVENT = "focusflow:glossary-changed";
 
-const readStore = (): GlossaryTerm[] => {
+const readStoredTerms = (): GlossaryTerm[] | null => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
   } catch {
-    return [];
+    return null;
   }
 };
+
+const readStore = (): GlossaryTerm[] => readStoredTerms() ?? [];
 
 /** Global cache so the highlighter can read terms without every node subscribing. */
 let cache: GlossaryTerm[] | null = null;
@@ -30,20 +29,7 @@ export const getGlossaryTerms = (): GlossaryTerm[] => {
 export const useGlossary = () => {
   const [terms, setTerms] = useState<GlossaryTerm[]>(() => getGlossaryTerms());
 
-  useEffect(() => {
-    const sync = () => {
-      cache = readStore();
-      setTerms(cache);
-    };
-    window.addEventListener(EVENT, sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener(EVENT, sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
-
-  const persist = useCallback((next: GlossaryTerm[]) => {
+  const persistLocal = useCallback((next: GlossaryTerm[]) => {
     cache = next;
     setTerms(next);
     try {
@@ -54,31 +40,75 @@ export const useGlossary = () => {
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
+  useEffect(() => {
+    const sync = () => {
+      cache = readStore();
+      setTerms(cache);
+    };
+    window.addEventListener(EVENT, sync);
+    window.addEventListener("storage", sync);
+
+    const refreshFromBackend = async () => {
+      const response = await glossaryAPI.getAll();
+      if (!response.success || !response.data) return;
+
+      const stored = readStoredTerms();
+      if (response.data.length === 0 && stored && stored.length > 0) {
+        await Promise.allSettled(stored.map((entry) => glossaryAPI.create(entry.term, entry.description, entry.id)));
+        const migrated = await glossaryAPI.getAll();
+        if (migrated.success && migrated.data) {
+          persistLocal(migrated.data);
+        }
+        return;
+      }
+
+      if (response.data.length > 0 || stored) {
+        persistLocal(response.data);
+      }
+    };
+
+    void refreshFromBackend();
+
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [persistLocal]);
+
   const addTerm = useCallback(
     (term: string, description: string) => {
       const trimmed = term.trim();
       if (!trimmed) return false;
       const existing = readStore();
       if (existing.some((t) => t.term.toLowerCase() === trimmed.toLowerCase())) return false;
-      persist([
+      const nextTerm = {
+        id: `glossary-${Date.now()}`,
+        term: trimmed,
+        description: description.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      persistLocal([
         ...existing,
-        { id: `g-${Date.now()}`, term: trimmed, description: description.trim(), createdAt: new Date().toISOString() },
+        nextTerm,
       ]);
+      void glossaryAPI.create(nextTerm.term, nextTerm.description, nextTerm.id);
       return true;
     },
-    [persist]
+    [persistLocal]
   );
 
   const updateTerm = useCallback(
     (id: string, updates: Partial<Pick<GlossaryTerm, "term" | "description">>) => {
-      persist(readStore().map((t) => (t.id === id ? { ...t, ...updates } : t)));
+      persistLocal(readStore().map((entry) => (entry.id === id ? { ...entry, ...updates } : entry)));
+      void glossaryAPI.update(id, updates);
     },
-    [persist]
+    [persistLocal]
   );
 
   const removeTerm = useCallback((id: string) => {
-    persist(readStore().filter((t) => t.id !== id));
-  }, [persist]);
+    persistLocal(readStore().filter((entry) => entry.id !== id));
+    void glossaryAPI.delete(id);
+  }, [persistLocal]);
 
   const sorted = useMemo(
     () => [...terms].sort((a, b) => a.term.localeCompare(b.term)),

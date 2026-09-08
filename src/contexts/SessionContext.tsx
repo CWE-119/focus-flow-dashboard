@@ -29,16 +29,6 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
   const [sessions, setSessions] = useState<DayData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch sessions from backend on mount
-  useEffect(() => {
-    fetchSessions();
-  }, []);
-
-  // Save to localStorage whenever sessions change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-  }, [sessions]);
-
   const fetchSessions = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -78,6 +68,16 @@ export const SessionProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   }, []);
+
+  // Fetch sessions from backend on mount
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  // Save to localStorage whenever sessions change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  }, [sessions]);
 
   const addSession = useCallback((durationSeconds: number, startTime: string, endTime: string) => {
     const dateKey = formatLocalDateKey();

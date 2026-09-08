@@ -1,7 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import {
   ArrowLeft,
   Bell,
+  BookMarked,
+  CalendarClock,
   Brush,
   Camera,
   CheckSquare,
@@ -29,6 +31,42 @@ const sections = [
       "Audio visualizer with two modes: classic frequency bars and an ASCII-style fire grid that reacts to playing music.",
       "Tasks and Reminders stack in the right column with matching heights; use each panel's expand button to fill the column.",
       "Twelve color themes; cycle them from the footer toggle or with Ctrl/Cmd+Shift+T.",
+    ],
+  },
+  {
+    title: "End Dates And Activity",
+    icon: CalendarClock,
+    items: [
+      "Open Connections beside End dates on the dashboard to configure Canvas LMS and Google Calendar.",
+      "Choose Save connection, then Sync now. Imports cover the past 30 days and next 365 days; sync again whenever you want fresh dates.",
+      "Click an end date to open its Activity day with due items, source links, reminders, and recorded focus sessions together.",
+      "Due-date dots appear on the activity grid. Select any day, including a future day, to see its details; use the year arrows for next year's assignments.",
+      "Timed events use your device's local time. Google all-day events appear on their final calendar day, without a timezone shift.",
+      "Sync updates changed dates without duplicates and removes cancelled or missing imports from the past 30 days and future. Older imported dates remain in Activity; manual dates stay untouched.",
+      "The last imported list remains available if a provider is offline. No sample assignments are generated.",
+    ],
+  },
+  {
+    title: "Calendar Connection Setup",
+    icon: CalendarClock,
+    items: [
+      "Canvas LMS: enter your school's HTTPS root address (for example https://school.instructure.com) and a personal access token from Account → Settings → Approved Integrations. Your school may restrict token creation or API access.",
+      "Google private calendars: paste an OAuth access token with calendar.events.readonly permission. Use primary or a specific calendar ID. This version requires replacing expired access tokens; automatic Google sign-in is not included.",
+      "For a manual Google token, follow the OAuth Playground link in Connections, authorize https://www.googleapis.com/auth/calendar.events.readonly, exchange the code for tokens, and copy the access token into the form.",
+      "Google public calendars: enable Calendar API in your Google Cloud project, choose API key, and enter the public calendar's ID from Settings → Integrate calendar. An API key cannot read private calendars.",
+      "Credentials are encrypted in the local backend and omitted from settings responses. Leave the credential blank to keep it when saving unchanged connection details.",
+      "Disconnect deletes the saved credential while keeping previously imported dates. Revoke the token in the provider's settings if you also want to invalidate it there.",
+      "If sync fails, check token expiry, read permission, school API policy, and internet access. Start the backend if connection settings cannot load.",
+    ],
+  },
+  {
+    title: "Noted Words And Glossary",
+    icon: BookMarked,
+    items: [
+      "Open Noted words from Notes to add terms and their meanings, then edit or remove definitions in the glossary manager.",
+      "Defined words are highlighted in notes, tasks, and reminders. Hover over a highlighted term to read its definition.",
+      "Use {{word|meaning here}} to give one occurrence a different definition.",
+      "Glossary terms persist in the local backend with a browser cache for reading when it is unavailable.",
     ],
   },
   {
@@ -63,6 +101,8 @@ const sections = [
       "Draw annotations directly over the preview with pen, highlighter, shapes, text, select/move, lock, visibility, layers, undo, and redo.",
       "Markdown folder import/export preserves annotation sidecars next to notes.",
       "Pin notes, reopen recent notes, create daily notes, and start from templates.",
+      "Use the note timer to record focused reading or writing sessions without leaving the editor.",
+      "Insert headings, task lists, tables, callouts, Mermaid, and DBML with the editor's quick actions; use LaTeX templates for common mathematical structures.",
     ],
   },
   {
@@ -203,7 +243,7 @@ const Help = () => {
     <div className="min-h-screen bg-background pt-8">
       <header className="border-b border-border px-4 py-4 sm:px-8">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} title="Back">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} title="Back to dashboard">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -224,8 +264,9 @@ const Help = () => {
         <section className="mb-8 flex flex-col gap-3 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-              A quick map of what the app can do right now: focus sessions, tasks, reminders,
-              Markdown notes, diagrams, graph view, folder links, import/export, and canvas work.
+              A quick map of what the app can do right now: connected end dates and activity,
+              focus sessions, tasks, reminders, noted words, Markdown notes, diagrams, graph view,
+              folder links, import/export, and canvas work.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

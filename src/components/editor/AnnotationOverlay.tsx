@@ -132,7 +132,7 @@ export const AnnotationOverlay = ({
       setShapeStart(null);
       setPreviewShape(null);
     }
-  }, [active]);
+  }, [active, onSelectionChange]);
 
   useEffect(() => {
     if (tool !== 'pan') {
@@ -214,7 +214,7 @@ export const AnnotationOverlay = ({
     } else if (clickedOnEmpty) {
       onSelectionChange(null);
     }
-  }, [active, tool, color, onAddAnnotation, onSelectionChange, eraseAtPointer]);
+  }, [active, visible, tool, color, onAddAnnotation, onSelectionChange, eraseAtPointer]);
 
   const handleMouseMove = useCallback((e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (!isDrawing || !active || !visible) return;
@@ -234,7 +234,7 @@ export const AnnotationOverlay = ({
         h: pos.y - shapeStart.y,
       });
     }
-  }, [isDrawing, active, tool, shapeStart, eraseAtPointer]);
+  }, [isDrawing, active, visible, tool, shapeStart, eraseAtPointer]);
 
   const handleMouseUp = useCallback(() => {
     if (!isDrawing || !active || !visible) return;
@@ -307,7 +307,7 @@ export const AnnotationOverlay = ({
     setCurrentPoints([]);
     setShapeStart(null);
     setPreviewShape(null);
-  }, [isDrawing, active, tool, currentPoints, shapeStart, color, brushSize, onAddAnnotation]);
+  }, [isDrawing, active, visible, tool, currentPoints, shapeStart, color, brushSize, onAddAnnotation]);
 
   const updateNodeGeometry = useCallback((id: string, node: Konva.Node, ann: AnnotationElement) => {
     const scaleX = node.scaleX();

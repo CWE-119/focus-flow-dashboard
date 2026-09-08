@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'queued' | 'error';
 
@@ -45,17 +45,17 @@ export function useDebounceWithStatus<T>(
   const hasChangedRef = useRef(false);
   const pendingValueRef = useRef<T>(value);
 
-  const persistQueue = (nextValue: T) => {
+  const persistQueue = useCallback((nextValue: T) => {
     if (!queueKey) return;
     localStorage.setItem(queueKey, JSON.stringify({ value: nextValue, queuedAt: new Date().toISOString() }));
-  };
+  }, [queueKey]);
 
-  const clearQueue = () => {
+  const clearQueue = useCallback(() => {
     if (!queueKey) return;
     localStorage.removeItem(queueKey);
-  };
+  }, [queueKey]);
 
-  const saveValue = async (nextValue: T) => {
+  const saveValue = useCallback(async (nextValue: T) => {
     pendingValueRef.current = nextValue;
     if (!navigator.onLine) {
       persistQueue(nextValue);
@@ -81,7 +81,7 @@ export function useDebounceWithStatus<T>(
       }));
       if (!navigator.onLine) persistQueue(nextValue);
     }
-  };
+  }, [callback, clearQueue, persistQueue]);
 
   useEffect(() => {
     // Check if value has changed from initial
@@ -114,7 +114,7 @@ export function useDebounceWithStatus<T>(
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [value, delay, callback, initialValue]);
+  }, [value, delay, initialValue, persistQueue, saveValue]);
 
   useEffect(() => {
     if (!queueKey) return;
@@ -133,7 +133,7 @@ export function useDebounceWithStatus<T>(
     } catch {
       clearQueue();
     }
-  }, [queueKey]);
+  }, [queueKey, clearQueue, saveValue]);
 
   useEffect(() => {
     const retry = () => {
@@ -143,7 +143,7 @@ export function useDebounceWithStatus<T>(
     };
     window.addEventListener('online', retry);
     return () => window.removeEventListener('online', retry);
-  }, [state.status, callback]);
+  }, [state.status, saveValue]);
 
   // Cleanup saved timeout on unmount
   useEffect(() => {

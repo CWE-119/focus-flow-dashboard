@@ -41,6 +41,7 @@ backend/*.sqlite-shm
 backend/*.sqlite-wal
 backend/*.sqlite3-shm
 backend/*.sqlite3-wal
+*.integrations.key
 
 # Environment variables
 .env

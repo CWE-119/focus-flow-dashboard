@@ -1,135 +1,119 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatLocalDateKey } from "@/lib/api";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { deadlinesAPI, formatLocalDateKey, type Deadline } from "@/lib/api";
 
-export type DeadlineSource = "google" | "canvas" | "manual";
-
-export interface Deadline {
-  id: string;
-  title: string;
-  /** Course / calendar name */
-  context?: string;
-  source: DeadlineSource;
-  /** ISO string — when the item is due / ends */
-  end: string;
-  /** ISO string — optional start time */
-  start?: string;
-  url?: string;
-}
+export type { Deadline, DeadlineSource } from "@/lib/api";
 
 const STORAGE_KEY = "focusflow:deadlines";
 
-const addDays = (days: number, hour = 23, minute = 59) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString();
-};
-
-/**
- * Mock feed standing in for the Google Calendar + Canvas LMS APIs.
- * Replace `loadDeadlines` with real fetches once the integrations are wired.
- */
-const MOCK_DEADLINES: Deadline[] = [
-  { id: "gc-1", title: "Team standup", context: "Work calendar", source: "google", start: addDays(0, 9, 30), end: addDays(0, 10, 0) },
-  { id: "cv-1", title: "Linear Algebra — Problem Set 6", context: "MATH 221", source: "canvas", end: addDays(1) },
-  { id: "gc-2", title: "Dentist appointment", context: "Personal", source: "google", start: addDays(2, 15, 0), end: addDays(2, 16, 0) },
-  { id: "cv-2", title: "Data Structures — Quiz 4", context: "CS 310", source: "canvas", end: addDays(3, 22, 0) },
-  { id: "cv-3", title: "Essay: Modernism in Print", context: "ENG 204", source: "canvas", end: addDays(5) },
-  { id: "gc-3", title: "Study group", context: "Work calendar", source: "google", start: addDays(6, 18, 0), end: addDays(6, 20, 0) },
-  { id: "cv-4", title: "Final project proposal", context: "CS 310", source: "canvas", end: addDays(9) },
-];
+export const deadlineDate = (value: string) => new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T23:59:59.999` : value);
 
 const readStore = (): Deadline[] => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return MOCK_DEADLINES;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : MOCK_DEADLINES;
-  } catch {
-    return MOCK_DEADLINES;
-  }
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((item) => item && typeof item.id === "string" &&
+      typeof item.title === "string" && Number.isFinite(deadlineDate(item.end).getTime())) : [];
+  } catch { return []; }
 };
 
-const EVENT = "focusflow:deadlines-changed";
-
-export const useDeadlines = () => {
-  const [deadlines, setDeadlines] = useState<Deadline[]>(() => readStore());
-
-  useEffect(() => {
-    const sync = () => setDeadlines(readStore());
-    window.addEventListener(EVENT, sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener(EVENT, sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
+function useDeadlineState() {
+  const [deadlines, setDeadlines] = useState<Deadline[]>(readStore);
+  const [selectedDate, selectDate] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const refreshId = useRef(0);
 
   const persist = useCallback((next: Deadline[]) => {
     setDeadlines(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore */
-    }
-    window.dispatchEvent(new Event(EVENT));
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { return; }
   }, []);
 
-  const addDeadline = useCallback(
-    (deadline: Omit<Deadline, "id" | "source"> & { source?: DeadlineSource }) => {
-      persist([
-        ...readStore(),
-        { ...deadline, source: deadline.source ?? "manual", id: `m-${Date.now()}` },
-      ]);
-    },
-    [persist]
-  );
-
-  const removeDeadline = useCallback((id: string) => {
-    persist(readStore().filter((d) => d.id !== id));
+  const refresh = useCallback(async () => {
+    const requestId = ++refreshId.current;
+    setIsLoading(true);
+    const response = await deadlinesAPI.getAll();
+    if (requestId !== refreshId.current) return false;
+    setIsLoading(false);
+    if (!response.success || !response.data) {
+      setError("Could not load end dates. Showing the last saved list; check that the backend is running.");
+      return false;
+    }
+    persist(response.data);
+    setError(null);
+    return true;
   }, [persist]);
 
-  const sorted = useMemo(
-    () => [...deadlines].sort((a, b) => new Date(a.end).getTime() - new Date(b.end).getTime()),
-    [deadlines]
-  );
+  useEffect(() => {
+    void refresh();
+    const onFocus = () => { setNow(Date.now()); void refresh(); };
+    const onStorage = (event: StorageEvent) => { if (event.key === STORAGE_KEY) void refresh(); };
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [refresh]);
 
-  const upcoming = useMemo(() => {
-    const now = Date.now();
-    return sorted.filter((d) => new Date(d.end).getTime() >= now - 60 * 60 * 1000);
-  }, [sorted]);
+  const addDeadline = useCallback(async (deadline: { title: string; end: string; context?: string }) => {
+    const response = await deadlinesAPI.create({ ...deadline, source: "manual" });
+    if (!response.success) throw new Error(response.error || "Could not save end date.");
+    await refresh();
+  }, [refresh]);
 
-  /** date key -> deadlines on that day, for the activity grid */
+  const removeDeadline = useCallback(async (id: string) => {
+    const response = await deadlinesAPI.delete(id);
+    if (!response.success) throw new Error(response.error || "Could not remove end date.");
+    await refresh();
+  }, [refresh]);
+
+  const sorted = useMemo(() => [...deadlines].sort((first, second) => deadlineDate(first.end).getTime() - deadlineDate(second.end).getTime()), [deadlines]);
+  const upcoming = useMemo(() => sorted.filter((deadline) => deadlineDate(deadline.end).getTime() >= now), [sorted, now]);
   const byDateKey = useMemo(() => {
     const map = new Map<string, Deadline[]>();
-    sorted.forEach((d) => {
-      const key = formatLocalDateKey(new Date(d.end));
-      map.set(key, [...(map.get(key) ?? []), d]);
+    sorted.forEach((deadline) => {
+      const key = formatLocalDateKey(deadlineDate(deadline.end));
+      map.set(key, [...(map.get(key) ?? []), deadline]);
     });
     return map;
   }, [sorted]);
 
-  return { deadlines: sorted, upcoming, byDateKey, addDeadline, removeDeadline };
-};
+  return { deadlines: sorted, upcoming, byDateKey, addDeadline, removeDeadline, refresh, error, isLoading, selectedDate, selectDate };
+}
+
+const DeadlinesContext = createContext<ReturnType<typeof useDeadlineState> | null>(null);
+
+export function DeadlinesProvider({ children }: { children: ReactNode }) {
+  return createElement(DeadlinesContext.Provider, { value: useDeadlineState() }, children);
+}
+
+export function useDeadlines() {
+  const context = useContext(DeadlinesContext);
+  if (!context) throw new Error("useDeadlines requires DeadlinesProvider");
+  return context;
+}
 
 export const formatDeadlineRange = (deadline: Deadline) => {
-  const end = new Date(deadline.end);
-  const time = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const end = deadlineDate(deadline.end);
+  const time = (date: Date) => date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
   const day = end.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (/^\d{4}-\d{2}-\d{2}$/.test(deadline.end)) return `${day} · All day`;
   if (deadline.start) {
     const start = new Date(deadline.start);
-    return `${day} · ${time(start)}–${time(end)}`;
+    const startDay = formatLocalDateKey(start) === formatLocalDateKey(end) ? day : start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return `${startDay} ${time(start)}–${formatLocalDateKey(start) === formatLocalDateKey(end) ? "" : `${day} `}${time(end)}`;
   }
   return `${day} · ${time(end)}`;
 };
 
-export const formatRelativeDue = (iso: string) => {
-  const diff = new Date(iso).getTime() - Date.now();
-  const mins = Math.round(diff / 60000);
-  if (mins < -60) return "past due";
-  if (mins < 60) return mins <= 0 ? "now" : `in ${mins}m`;
-  const hours = Math.round(mins / 60);
+export const formatRelativeDue = (value: string) => {
+  const minutes = Math.ceil((deadlineDate(value).getTime() - Date.now()) / 60000);
+  if (minutes < 0) return "past due";
+  if (minutes < 60) return minutes === 0 ? "now" : `in ${minutes}m`;
+  const hours = Math.ceil(minutes / 60);
   if (hours < 24) return `in ${hours}h`;
-  const days = Math.round(hours / 24);
+  const days = Math.ceil(hours / 24);
   return days === 1 ? "tomorrow" : `in ${days}d`;
 };

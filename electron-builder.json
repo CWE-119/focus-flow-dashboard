@@ -9,6 +9,8 @@
     "dist/**/*",
     "electron/**/*",
     "backend/index.js",
+    "backend/deadline-integrations.cjs",
+    "backend/deadline-providers.cjs",
     "backend/package.json",
     "node_modules/**/*",
     "package.json"

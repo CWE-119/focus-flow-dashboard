@@ -1,5 +1,5 @@
 import { useNoteTimer } from "@/contexts/NoteTimerContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import { BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 

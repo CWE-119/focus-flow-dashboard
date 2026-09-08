@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, useEffect, ReactNode } from "react";
 import { getApiBaseUrl } from "@/lib/api";
 
 interface Folder {
@@ -97,6 +97,15 @@ const sortNotes = (items: Note[]) =>
     if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
     return new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime();
   });
+const sortFolders = (data: Folder[]) =>
+  [...data].sort((a, b) => {
+    const posA = a.position ?? 100000;
+    const posB = b.position ?? 100000;
+    if (posA !== posB) return posA - posB;
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateA - dateB;
+  });
 let noteViewEndpointSupported = true;
 
 export const NotesProvider = ({ children }: { children: ReactNode }) => {
@@ -107,12 +116,6 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const recentNotes = sortNotes(allNotes.filter((note) => note.lastViewedAt)).slice(0, 8);
   const viewedNoteIdsRef = useState(() => new Set<string>())[0];
-
-  // Fetch folders on mount
-  useEffect(() => {
-    fetchFolders();
-    fetchAllNotes();
-  }, []);
 
   // Fetch notes when folder is selected
   useEffect(() => {
@@ -125,18 +128,7 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [selectedFolderId, allNotes]);
 
-  // Fetch all folders
-  const sortFolders = (data: Folder[]) =>
-    [...data].sort((a, b) => {
-      const posA = a.position ?? 100000;
-      const posB = b.position ?? 100000;
-      if (posA !== posB) return posA - posB;
-      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return dateA - dateB;
-    });
-
-  const fetchFolders = async () => {
+  const fetchFolders = useCallback(async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/folders`);
       if (!response.ok) throw new Error("Failed to fetch folders");
@@ -145,7 +137,7 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Error fetching folders:", error);
     }
-  };
+  }, []);
 
 
   // Fetch notes by folder
@@ -161,11 +153,7 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const refreshNotes = async () => {
-    await Promise.all([fetchFolders(), fetchAllNotes()]);
-  };
-
-  const fetchAllNotes = async () => {
+  const fetchAllNotes = useCallback(async () => {
     try {
       const response = await fetch(`${getApiBaseUrl()}/notes`);
       if (!response.ok) throw new Error("Failed to fetch all notes");
@@ -175,7 +163,16 @@ export const NotesProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error fetching all notes:", error);
       setAllNotes([]);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchFolders();
+    fetchAllNotes();
+  }, [fetchFolders, fetchAllNotes]);
+
+  const refreshNotes = useCallback(async () => {
+    await Promise.all([fetchFolders(), fetchAllNotes()]);
+  }, [fetchFolders, fetchAllNotes]);
 
   // Create folder
   const createFolder = async (name: string, color: string, parentId?: string | null): Promise<Folder | null> => {

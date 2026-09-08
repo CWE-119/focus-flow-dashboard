@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { CalendarDays, GraduationCap, CalendarClock } from "lucide-react";
-import { useDeadlines, formatDeadlineRange, formatRelativeDue } from "@/hooks/use-deadlines";
+import { useDeadlines, deadlineDate, formatDeadlineRange, formatRelativeDue } from "@/hooks/use-deadlines";
+import { DeadlineConnections } from "@/components/DeadlineConnections";
 import { cn } from "@/lib/utils";
 
 const Clock = () => {
   const [time, setTime] = useState(new Date());
-  const { upcoming } = useDeadlines();
+  const { upcoming, selectDate, error, isLoading } = useDeadlines();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -47,29 +48,30 @@ const Clock = () => {
         </p>
       </div>
 
-      {/* End dates pulled from Google Calendar + Canvas — fixed height, scrollable */}
       <div className="mt-4 border-t border-border pt-3">
         <div className="mb-2 flex items-center gap-1.5">
           <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="font-body text-[10px] uppercase tracking-widest text-muted-foreground">
             End dates
           </span>
+          <DeadlineConnections />
         </div>
+        {error && <p role="alert" className="mb-2 text-xs text-destructive">{error}</p>}
 
         <div className="h-[132px] overflow-y-auto pr-1">
           {upcoming.length === 0 ? (
             <p className="py-6 text-center font-body text-xs text-muted-foreground">
-              Nothing due — enjoy it
+              {isLoading ? "Loading end dates…" : "No upcoming dates. Add a connection to import your calendar and assignments."}
             </p>
           ) : (
             <ul className="space-y-1.5">
               {upcoming.map((item) => {
-                const overdue = new Date(item.end).getTime() < Date.now();
+                const overdue = deadlineDate(item.end).getTime() < Date.now();
                 return (
                   <li
                     key={item.id}
-                    className="flex items-start gap-2 rounded-sm px-1 py-1 transition-colors hover:bg-muted/60"
                   >
+                    <button type="button" onClick={() => selectDate(deadlineDate(item.end))} className="flex w-full items-start gap-2 rounded-sm px-1 py-1 text-left transition-colors hover:bg-muted/60 focus-visible:outline focus-visible:outline-primary" aria-label={`View ${item.title} in Activity`}>
                     {item.source === "canvas" ? (
                       <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                     ) : (
@@ -92,6 +94,7 @@ const Clock = () => {
                     >
                       {formatRelativeDue(item.end)}
                     </span>
+                    </button>
                   </li>
                 );
               })}

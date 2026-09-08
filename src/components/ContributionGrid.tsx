@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +12,7 @@ import { useSession, Session } from "@/contexts/SessionContext";
 import { useReminders } from "@/contexts/RemindersContext";
 import { ReminderPopup } from "./ReminderPopup";
 import { formatLocalDateKey } from "@/lib/api";
-import { useDeadlines } from "@/hooks/use-deadlines";
+import { useDeadlines, formatDeadlineRange } from "@/hooks/use-deadlines";
 
 interface DayData {
   level: number;
@@ -19,15 +21,14 @@ interface DayData {
 }
 
 const ContributionGrid = () => {
-  const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [reminderPopupOpen, setReminderPopupOpen] = useState(false);
   const { sessions } = useSession();
   const { reminders, getRemindersByDate } = useReminders();
-  const { byDateKey } = useDeadlines();
+  const { byDateKey, selectedDate, selectDate } = useDeadlines();
 
   // Generate data for all 12 months in calendar year order
-  const today = new Date();
-  const currentYear = today.getFullYear();
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  useEffect(() => { if (selectedDate) setCurrentYear(selectedDate.getFullYear()); }, [selectedDate]);
   
   const sessionsByDate = useMemo(() => new Map(sessions.map((day) => [day.date, day.sessions])), [sessions]);
   const reminderDates = useMemo(() => {
@@ -44,6 +45,11 @@ const ContributionGrid = () => {
     if (totalMinutes < 120) return 3;
     return 4;
   };
+
+  const selectedSessions = selectedDate ? sessionsByDate.get(formatLocalDateKey(selectedDate)) || [] : [];
+  const selectedDay: DayData | null = selectedDate ? { date: selectedDate, sessions: selectedSessions, level: getLevelForSessions(selectedSessions) } : null;
+  const selectedDeadlines = selectedDate ? byDateKey.get(formatLocalDateKey(selectedDate)) || [] : [];
+  const selectedReminders = selectedDate ? getRemindersByDate(selectedDate) : [];
 
   const months = useMemo(() => {
     const getMonthData = (monthNum: number) => {
@@ -107,10 +113,15 @@ const ContributionGrid = () => {
     <>
       <div className="border border-border rounded-md p-4 md:p-6 bg-card">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <span className="font-body text-xs uppercase tracking-widest text-muted-foreground">
             Activity
           </span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Previous year" onClick={() => setCurrentYear((year) => year - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <span className="text-xs tabular-nums" aria-live="polite">{currentYear}</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Next year" onClick={() => setCurrentYear((year) => year + 1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
           
           {/* Legend */}
           <div className="flex items-center gap-1 md:gap-2">
@@ -145,22 +156,17 @@ const ContributionGrid = () => {
                         const dayHasReminder = hasReminder(day.date);
                         const dayDeadlines = byDateKey.get(formatLocalDateKey(day.date)) ?? [];
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={dayIdx}
+                            aria-label={`${formatDate(day.date)}: ${getTotalTime(day.sessions)} focus, ${dayDeadlines.length} end dates${dayHasReminder ? ", reminders" : ""}`}
                             className={`w-2 h-2 md:w-3 md:h-3 relative ${getLevelClass(day.level)} transition-all hover:ring-1 hover:ring-foreground cursor-pointer rounded-sm`}
-                            title={`${day.date.getDate()} - ${day.level} hour${day.level !== 1 ? "s" : ""}${dayHasReminder ? " • Has reminder" : ""}${
+                            title={`${formatDate(day.date)} - ${getTotalTime(day.sessions)} focus${dayHasReminder ? " • Has reminder" : ""}${
                               dayDeadlines.length
                                 ? `\nDue: ${dayDeadlines.map((d) => d.title).join(", ")}`
                                 : ""
                             }`}
-                            onClick={() => {
-                              if (dayHasReminder) {
-                                setSelectedDay(day);
-                                setReminderPopupOpen(true);
-                              } else {
-                                setSelectedDay(day);
-                              }
-                            }}
+                            onClick={() => selectDate(day.date)}
                           >
                             {dayHasReminder && (
                               <div className="absolute inset-0 bg-destructive rounded-sm animate-pulse opacity-70" />
@@ -168,7 +174,7 @@ const ContributionGrid = () => {
                             {dayDeadlines.length > 0 && (
                               <span className="pointer-events-none absolute top-1/2 left-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary ring-1 ring-card md:h-1.5 md:w-1.5" />
                             )}
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -180,8 +186,8 @@ const ContributionGrid = () => {
         </div>
       </div>
 
-      <Dialog open={!!selectedDay && !reminderPopupOpen} onOpenChange={() => setSelectedDay(null)}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={!!selectedDay && !reminderPopupOpen} onOpenChange={(open) => { if (!open) selectDate(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">
               {selectedDay && formatDate(selectedDay.date)}
@@ -192,6 +198,33 @@ const ContributionGrid = () => {
                 : `${selectedDay?.sessions.length} session${selectedDay?.sessions.length !== 1 ? "s" : ""} • ${selectedDay && getTotalTime(selectedDay.sessions)} total`}
             </DialogDescription>
           </DialogHeader>
+
+          <section className="space-y-2" aria-label="End dates for this day">
+            <h3 className="text-sm font-semibold">End dates ({selectedDeadlines.length})</h3>
+            {selectedDeadlines.length === 0 && <p className="text-sm text-muted-foreground">No end dates on this day.</p>}
+            {selectedDeadlines.map((deadline) => (
+              <div key={deadline.id} className="rounded-md border border-border p-3">
+                <p className="text-sm font-medium">{deadline.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatDeadlineRange(deadline)}{deadline.context ? ` · ${deadline.context}` : ""}</p>
+                <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground">{deadline.source === "canvas" ? "Canvas LMS" : deadline.source === "google" ? "Google Calendar" : "Manual"}</span>
+                  {deadline.url && /^https?:\/\//i.test(deadline.url) && (
+                    <a href={deadline.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary underline">Open source<ExternalLink className="h-3 w-3" /></a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {selectedReminders.length > 0 && (
+            <section className="space-y-2" aria-label="Reminders for this day">
+              <h3 className="text-sm font-semibold">Reminders ({selectedReminders.length})</h3>
+              {selectedReminders.map((reminder) => <p key={reminder.id} className="text-sm text-muted-foreground">{reminder.title}</p>)}
+              <Button size="sm" variant="outline" onClick={() => setReminderPopupOpen(true)}>Manage reminders</Button>
+            </section>
+          )}
+
+          <h3 className="text-sm font-semibold">Focus sessions</h3>
 
           {selectedDay && selectedDay.sessions.length > 0 && (
             <div className="space-y-3 mt-4">

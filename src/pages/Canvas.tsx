@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/lib/router';
 import Konva from 'konva';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';

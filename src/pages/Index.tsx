@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { DeadlinesProvider } from "@/hooks/use-deadlines";
+import { useNavigate } from "@/lib/router";
 import Timer from "@/components/Timer";
 import Clock from "@/components/Clock";
 import TodoList from "@/components/TodoList";
@@ -203,7 +204,9 @@ const IndexContent = () => {
 const Index = () => {
   return (
     <RemindersProvider>
-      <IndexContent />
+      <DeadlinesProvider>
+        <IndexContent />
+      </DeadlinesProvider>
     </RemindersProvider>
   );
 };

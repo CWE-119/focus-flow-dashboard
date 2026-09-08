@@ -95,6 +95,20 @@ No `.env` file is required. Optional configuration:
 | `PORT` | Override the backend port (default `5000`) |
 | `FOCUSFLOW_DB_PATH` | Override the SQLite file location |
 | `VITE_API_URL` | Point the browser build at another API base URL |
+| `FOCUSFLOW_FRONTEND_ORIGIN` | Allow an additional exact browser origin for local deadline integration settings |
+
+## End dates and calendar connections
+
+In the dashboard, open **End dates → Connections** to add Canvas LMS or Google
+Calendar credentials. Save the connection, then choose **Sync now**. Click any
+imported date to see its deadlines, reminders, and focus sessions together in
+Activity. The grid also supports future days and year navigation.
+
+See [calendar setup and API details](docs/deadline-integrations.md) for credentials,
+sync behavior, and local storage. Help includes these features, the noted-words
+glossary, and the note editor's recent additions.
+
+Suggested next work is prioritized in the [research and education roadmap](docs/research-education-roadmap.md).
 
 ## Promotional screenshot studio
 
@@ -140,7 +154,8 @@ database in its writable user-data directory so updates do not overwrite it.
 
 The API covers task categories, todos, notes, note references and revisions,
 the graph, folders, focus history and sessions, reminders, annotations, and
-drawings. The desktop build packages the same backend used during development.
+drawings, deadlines, calendar connections, and glossary terms. The desktop build
+packages the same backend used during development.
 
 ## Project map
 

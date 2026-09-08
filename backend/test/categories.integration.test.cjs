@@ -113,15 +113,9 @@ before(async () => {
   databasePath = path.join(tempDir, 'legacy.db');
   await createLegacyDatabase(databasePath);
 
-  let listenTarget;
-  if (process.platform === 'win32') {
-    const port = await getAvailablePort();
-    listenTarget = String(port);
-    connectionOptions = { hostname: '127.0.0.1', port };
-  } else {
-    listenTarget = path.join(tempDir, 'backend.sock');
-    connectionOptions = { socketPath: listenTarget };
-  }
+  const port = await getAvailablePort();
+  const listenTarget = String(port);
+  connectionOptions = { hostname: '127.0.0.1', port };
   backendProcess = spawn(process.execPath, [path.join(rootDir, 'backend', 'index.js')], {
     cwd: rootDir,
     env: {
@@ -238,4 +232,111 @@ test('creates and retrieves a single note by its SQLite id', async () => {
   assert.equal(fetchedNote.response.statusCode, 200);
   assert.equal(fetchedNote.body.id, createdNote.body.id);
   assert.equal(fetchedNote.body.title, 'Release notes');
+});
+
+test('keeps connection credentials private and validates integration access', async () => {
+  const forbidden = await request('/integrations/deadlines', { headers: { Origin: 'https://untrusted.example' } });
+  assert.equal(forbidden.response.statusCode, 403);
+  const invalid = await request('/integrations/deadlines/canvas', {
+    method: 'PUT', body: JSON.stringify({ baseUrl: 'http://localhost:8080', credential: 'fake-token' }),
+  });
+  assert.equal(invalid.response.statusCode, 400);
+  const publicPrimary = await request('/integrations/deadlines/google', {
+    method: 'PUT', body: JSON.stringify({ calendarId: 'primary', authMode: 'apiKey', credential: 'fake-key' }),
+  });
+  assert.equal(publicPrimary.response.statusCode, 400);
+  const saved = await request('/integrations/deadlines/canvas', {
+    method: 'PUT', body: JSON.stringify({ baseUrl: 'https://school.instructure.com', credential: 'fake-token' }),
+  });
+  assert.equal(saved.response.statusCode, 200);
+  assert.equal(saved.body.find((entry) => entry.provider === 'canvas').configured, true);
+  assert.equal(JSON.stringify(saved.body).includes('fake-token'), false);
+  const status = await request('/integrations/deadlines', { headers: { Origin: 'http://localhost:3000' } });
+  assert.equal(status.response.statusCode, 200);
+  assert.equal(status.response.headers['cache-control'], 'no-store');
+  assert.equal(JSON.stringify(status.body).includes('fake-token'), false);
+  const disconnected = await request('/integrations/deadlines/canvas', { method: 'DELETE' });
+  assert.equal(disconnected.response.statusCode, 200);
+  assert.equal(disconnected.body.find((entry) => entry.provider === 'canvas').configured, false);
+  const unconfigured = await request('/integrations/deadlines/canvas/sync', { method: 'POST', body: '{}' });
+  assert.equal(unconfigured.response.statusCode, 502);
+  assert.match(unconfigured.body.error, /Save this connection/);
+});
+
+test('persists deadlines and glossary terms for dashboard features', async () => {
+  const invalidDeadline = await request('/deadlines', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: 'Bad source',
+      source: 'email',
+      end: '2026-01-03T15:00:00.000Z',
+    }),
+  });
+  assert.equal(invalidDeadline.response.statusCode, 400);
+
+  const createdDeadline = await request('/deadlines', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: 'deadline-dashboard-test',
+      title: 'Data structures quiz',
+      context: 'CS 310',
+      source: 'canvas',
+      start: '2026-01-03T14:30:00.000Z',
+      end: '2026-01-03T15:00:00.000Z',
+      url: 'https://canvas.example.test/courses/310',
+    }),
+  });
+  assert.equal(createdDeadline.response.statusCode, 201);
+  assert.equal(createdDeadline.body.id, 'deadline-dashboard-test');
+  assert.equal(createdDeadline.body.source, 'canvas');
+
+  const updatedDeadline = await request('/deadlines/deadline-dashboard-test', {
+    method: 'PUT',
+    body: JSON.stringify({ title: 'Data structures quiz 4', context: null }),
+  });
+  assert.equal(updatedDeadline.response.statusCode, 200);
+  assert.equal(updatedDeadline.body.title, 'Data structures quiz 4');
+  assert.equal(updatedDeadline.body.context, null);
+
+  const deadlines = await request('/deadlines');
+  assert.equal(deadlines.response.statusCode, 200);
+  assert.equal(deadlines.body.length, 1);
+  assert.equal(deadlines.body[0].id, 'deadline-dashboard-test');
+
+  const createdTerm = await request('/glossary', {
+    method: 'POST',
+    body: JSON.stringify({
+      id: 'glossary-flow-test',
+      term: 'Flow',
+      description: 'A state of focused momentum.',
+    }),
+  });
+  assert.equal(createdTerm.response.statusCode, 201);
+  assert.equal(createdTerm.body.term, 'Flow');
+
+  const duplicateTerm = await request('/glossary', {
+    method: 'POST',
+    body: JSON.stringify({ term: 'flow', description: 'Duplicate casing.' }),
+  });
+  assert.equal(duplicateTerm.response.statusCode, 409);
+
+  const updatedTerm = await request('/glossary/glossary-flow-test', {
+    method: 'PUT',
+    body: JSON.stringify({ description: 'Focused momentum with low friction.' }),
+  });
+  assert.equal(updatedTerm.response.statusCode, 200);
+  assert.equal(updatedTerm.body.description, 'Focused momentum with low friction.');
+
+  const glossary = await request('/glossary');
+  assert.equal(glossary.response.statusCode, 200);
+  assert.equal(glossary.body.length, 1);
+  assert.equal(glossary.body[0].id, 'glossary-flow-test');
+
+  const deletedDeadline = await request('/deadlines/deadline-dashboard-test', { method: 'DELETE' });
+  assert.equal(deletedDeadline.response.statusCode, 200);
+  assert.deepEqual(deletedDeadline.body, { success: true });
+
+  const deletedTerm = await request('/glossary/glossary-flow-test', { method: 'DELETE' });
+  assert.equal(deletedTerm.response.statusCode, 200);
+  assert.deepEqual(deletedTerm.body, { success: true });
 });

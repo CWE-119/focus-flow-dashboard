@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "@/lib/router";
 import { lazy, Suspense } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -38,7 +38,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <UpdateNotification />
-              <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <Router>
                 <Suspense fallback={<div className="min-h-screen bg-background pt-8" />}>
                   <Routes>
                     <Route path="/" element={<Index />} />
