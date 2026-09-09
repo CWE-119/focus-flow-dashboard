@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StudySummary } from "@/components/StudySummary";
 import { DeadlinesProvider } from "@/hooks/use-deadlines";
 import { useNavigate } from "@/lib/router";
 import Timer from "@/components/Timer";
@@ -176,6 +177,7 @@ const IndexContent = () => {
       {/* Contribution Grid - Full Width */}
       <div className="mt-5 sm:mt-6 lg:mt-8">
         <ContributionGrid />
+        <StudySummary />
       </div>
 
       {/* Footer */}

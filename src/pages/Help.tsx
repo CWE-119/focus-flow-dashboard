@@ -23,6 +23,41 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const sections = [
   {
+    title: "Course And Research Workspaces",
+    icon: FileText,
+    items: [
+      "Open Study & research from the dashboard's Study schedule or the Notes tools menu. Create a course or research project with its own description.",
+      "Link existing notes, assignments/end dates, and recorded focus sessions. Notes and dates can belong to more than one workspace; unlinking leaves the original item intact.",
+      "Add reading URLs and mark readings complete. Workspace totals show linked focus minutes, separately from study-plan completion.",
+      "Generate a study plan from a linked deadline, total estimated minutes, daily budget, and earliest start date. Blocks are scheduled backwards before the due day; impossible plans are rejected.",
+      "Mark study blocks complete as you finish. If the source deadline changes, review the plan warning and remove old steps before regenerating.",
+    ],
+  },
+  {
+    title: "Active Recall And Spaced Reviews",
+    icon: BookMarked,
+    items: [
+      "Select text in a note's editor or preview, then choose Create recall card. Edit the question and answer and optionally assign a workspace. The card keeps a source-note link.",
+      "In Noted words, create a card from a term and its definition. You can also create and edit cards in Study → Active recall.",
+      "Try answering before pressing Show answer. Grade Again, Hard, Good, or Easy to save the review and schedule the next one.",
+      "Again returns a card in 10 minutes; successful recalls use growing day intervals. Ratings are stored separately from focus minutes, and concurrent duplicate reviews are rejected.",
+      "The dashboard's Study schedule shows due cards and planned minutes. Filter the review queue by workspace, and use Manage all cards to edit or delete a card.",
+    ],
+  },
+  {
+    title: "Backups And GitHub Device Sync",
+    icon: Download,
+    items: [
+      "Open Study → Backups & sync. Daily local backups work without GitHub while the backend runs; the latest 30 daily backups are retained, and manual/recovery snapshots are kept.",
+      "Connect a dedicated private GitHub repository with a fine-grained token granting Contents read/write. Use the same repository and strong sync passphrase on every device.",
+      "Enable scheduled sync to check and upload every 15 minutes. Remote changes wait for a manual Sync now before they can replace local data.",
+      "If both devices changed, compare the counts and choose the complete local or GitHub workspace to keep. The other version is saved in a local recovery snapshot. Individual records are not automatically merged.",
+      "Preview a backup to validate its schema and references in a temporary database. Restore requires a fresh preview and creates a recovery snapshot before replacing saved data and reloading.",
+      "Portable encrypted export/import includes all database content, including notes, drawings, annotations, tasks, cards, reviews, and workspaces. Credentials, browser preferences, and unsaved/offline drafts are excluded; save drafts before backup or restore.",
+      "Keep your passphrase outside the app for recovery. Local snapshots also need this device's credential key; portable exports use their own passphrase. Reconnect calendar accounts on a new device.",
+    ],
+  },
+  {
     title: "Focus Dashboard",
     icon: Timer,
     items: [
@@ -38,7 +73,7 @@ const sections = [
     icon: CalendarClock,
     items: [
       "Open Connections beside End dates on the dashboard to configure Canvas LMS and Google Calendar.",
-      "Choose Save connection, then Sync now. Imports cover the past 30 days and next 365 days; sync again whenever you want fresh dates.",
+      "Choose Save connection, then Sync now. Imports cover the past 30 days and next 365 days. Enable automatic sync to refresh every 15 minutes while the backend runs.",
       "Click an end date to open its Activity day with due items, source links, reminders, and recorded focus sessions together.",
       "Due-date dots appear on the activity grid. Select any day, including a future day, to see its details; use the year arrows for next year's assignments.",
       "Timed events use your device's local time. Google all-day events appear on their final calendar day, without a timezone shift.",
@@ -51,7 +86,7 @@ const sections = [
     icon: CalendarClock,
     items: [
       "Canvas LMS: enter your school's HTTPS root address (for example https://school.instructure.com) and a personal access token from Account → Settings → Approved Integrations. Your school may restrict token creation or API access.",
-      "Google private calendars: paste an OAuth access token with calendar.events.readonly permission. Use primary or a specific calendar ID. This version requires replacing expired access tokens; automatic Google sign-in is not included.",
+      "Google private calendars: use primary or a specific calendar ID and calendar.events.readonly permission. In Automatic Google token refresh, add your OAuth client ID, client secret, and an offline refresh token for that client to renew access during sync.",
       "For a manual Google token, follow the OAuth Playground link in Connections, authorize https://www.googleapis.com/auth/calendar.events.readonly, exchange the code for tokens, and copy the access token into the form.",
       "Google public calendars: enable Calendar API in your Google Cloud project, choose API key, and enter the public calendar's ID from Settings → Integrate calendar. An API key cannot read private calendars.",
       "Credentials are encrypted in the local backend and omitted from settings responses. Leave the credential blank to keep it when saving unchanged connection details.",

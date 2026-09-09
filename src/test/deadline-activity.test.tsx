@@ -99,7 +99,7 @@ describe('connected deadline activity', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Save connection' })[0]);
     expect(await screen.findByText(/Connection saved/)).toBeInTheDocument();
     expect(token).toHaveValue('');
-    expect(deadlineIntegrationsAPI.save).toHaveBeenCalledWith('canvas', { baseUrl: 'https://school.instructure.com', credential: 'secret-test-token' });
+    expect(deadlineIntegrationsAPI.save).toHaveBeenCalledWith('canvas', { baseUrl: 'https://school.instructure.com', credential: 'secret-test-token', autoSync: false });
     expect(localStorage.getItem('focusflow:deadlines')).not.toContain('secret-test-token');
     vi.mocked(deadlineIntegrationsAPI.getAll).mockResolvedValue({ success: true, data: configured });
     fireEvent.click(screen.getByRole('button', { name: 'Sync now' }));

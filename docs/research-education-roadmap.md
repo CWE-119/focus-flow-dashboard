@@ -1,15 +1,15 @@
 # Suggested research and education roadmap
 
-These are proposed features, not claims about existing functionality. Prioritize
-the complete path from source material to understanding, writing, and revision.
+Items 2, 3, and 5 now have working first versions, documented in the
+[study and sync guide](study-and-sync.md). Items 1 and 4 remain proposed work.
 
 | Priority | Feature | A useful first version |
 | --- | --- | --- |
 | 1 | Papers and citations | Import PDFs and DOI/BibTeX metadata; connect Zotero; highlight into notes with a source-page link; export a bibliography. |
-| 2 | Course and research workspaces | Link a course/project to its notes, assignments, readings, and focus sessions. Turn a due date into a backward study plan with estimated effort. |
-| 3 | Active recall | Turn selected passages and glossary definitions into editable questions or flashcards. Schedule spaced reviews and show review load alongside deadlines. |
+| 2 | Course and research workspaces | Implemented: link notes, assignments, readings, and focus sessions; generate study plans from effort estimates. |
+| 3 | Active recall | Implemented: editable cards from selected passages and glossary definitions, spaced reviews, and dashboard review load. |
 | 4 | Trustworthy search | Search notes, PDF text, and annotations together; add optional question answering with clickable source passages and clear missing-evidence responses. |
-| 5 | Reliable continuity | Add automatic backups and restore drills, encrypted device sync with conflict resolution, Google OAuth refresh, and scheduled provider sync. |
+| 5 | Reliable continuity | Implemented: local automatic backups and restore previews, encrypted GitHub sync with whole-workspace conflict resolution, Google OAuth refresh, and scheduled calendar sync. |
 
 Start with source-linked PDF reading and citations. It closes the biggest gap
 between a capable Markdown workspace and a research tool. Zotero already

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FlashcardComposer, type CardDraft } from "@/components/FlashcardComposer";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ export const GlossaryManager = ({ isOpen, onOpenChange }: GlossaryManagerProps) 
   const [term, setTerm] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
 
   const handleAdd = () => {
     if (!term.trim()) {
@@ -79,6 +81,7 @@ export const GlossaryManager = ({ isOpen, onOpenChange }: GlossaryManagerProps) 
           )}
           {terms.map((entry) => (
             <div key={entry.id} className="rounded-md border border-border p-2">
+              <Button size="sm" variant="ghost" onClick={() => setCardDraft({ question: `What does ${entry.term} mean?`, answer: entry.description, glossaryId: entry.id })}>Create recall card</Button>
               <div className="flex items-center gap-2">
                 <Input
                   value={entry.term}
@@ -105,6 +108,7 @@ export const GlossaryManager = ({ isOpen, onOpenChange }: GlossaryManagerProps) 
           ))}
         </div>
       </DialogContent>
+      {cardDraft && <FlashcardComposer draft={cardDraft} onClose={() => setCardDraft(null)} />}
     </Dialog>
   );
 };

@@ -97,6 +97,14 @@ No `.env` file is required. Optional configuration:
 | `VITE_API_URL` | Point the browser build at another API base URL |
 | `FOCUSFLOW_FRONTEND_ORIGIN` | Allow an additional exact browser origin for local deadline integration settings |
 
+## Study, research, and backups
+
+Open **Study & research** from the dashboard or Notes tools menu to organize
+course/project workspaces, link notes and assignments, plan study time, review
+flashcards, and configure encrypted GitHub sync. Daily local backups and portable
+encrypted export/import are available without a cloud account. See the
+[study and sync guide](docs/study-and-sync.md) for setup, recovery, and limits.
+
 ## End dates and calendar connections
 
 In the dashboard, open **End dates → Connections** to add Canvas LMS or Google

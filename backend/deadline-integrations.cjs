@@ -2,8 +2,10 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const sqlite3 = require('sqlite3');
 const { canvasOrigin, fetchDeadlines } = require('./deadline-providers.cjs');
+const { refreshGoogleToken } = require('./google-token.cjs');
+const { localOnly } = require('./db-utils.cjs');
 
-function createIntegrationService(databasePath, fetchProvider = fetchDeadlines) {
+function createIntegrationService(databasePath, fetchProvider = fetchDeadlines, refreshToken = refreshGoogleToken) {
   const database = new sqlite3.Database(databasePath);
   database.configure('busyTimeout', 5000);
   const run = (sql, params = []) => new Promise((resolve, reject) => database.run(sql, params, function(error) {
@@ -48,10 +50,12 @@ function createIntegrationService(databasePath, fetchProvider = fetchDeadlines) 
   }
 
   const status = async () => {
-    const rows = await all('SELECT provider, settings, lastSyncedAt FROM deadline_integrations');
+    const rows = await all('SELECT provider, settings, secrets, lastSyncedAt FROM deadline_integrations');
     return ['canvas', 'google'].map((provider) => {
       const row = rows.find((entry) => entry.provider === provider);
-      return { provider, configured: Boolean(row), settings: row ? JSON.parse(row.settings) : {}, lastSyncedAt: row?.lastSyncedAt || null };
+      let hasRefreshToken = false;
+      try { hasRefreshToken = Boolean(row && decrypt(row.secrets).refreshToken); } catch { hasRefreshToken = false; }
+      return { provider, configured: Boolean(row), settings: row ? JSON.parse(row.settings) : {}, hasRefreshToken, lastSyncedAt: row?.lastSyncedAt || null };
     });
   };
 
@@ -66,14 +70,23 @@ function createIntegrationService(databasePath, fetchProvider = fetchDeadlines) 
       if (provider === 'google' && settings.authMode === 'apiKey' && settings.calendarId === 'primary') {
         throw new Error('Public calendars need their calendar ID; primary requires an OAuth access token.');
       }
+      settings.autoSync = input.autoSync === true;
       const [previous] = await all('SELECT * FROM deadline_integrations WHERE provider = ?', [provider]);
       const previousSettings = previous ? JSON.parse(previous.settings) : null;
-      const changed = previousSettings && JSON.stringify(previousSettings) !== JSON.stringify(settings);
+      const changed = previousSettings && (previousSettings.baseUrl !== settings.baseUrl || previousSettings.calendarId !== settings.calendarId || previousSettings.authMode !== settings.authMode);
       if (input.credential !== undefined && (typeof input.credential !== 'string' || /\s/.test(input.credential) || input.credential.length > 8192)) {
         throw new Error('Enter a valid credential without whitespace.');
       }
-      if (!input.credential && (!previous || changed)) throw new Error('Enter a credential for this connection.');
-      const secrets = input.credential ? encrypt({ credential: input.credential }) : previous.secrets;
+      if (!input.credential && !(input.refreshToken && input.clientId) && (!previous || changed)) throw new Error('Enter a credential for this connection.');
+      const values = previous && !changed ? decrypt(previous.secrets) : {};
+      for (const field of ['credential', 'refreshToken', 'clientId', 'clientSecret']) {
+        if (input[field] !== undefined) {
+          if (typeof input[field] !== 'string' || /\s/.test(input[field]) || input[field].length > 8192) throw new Error('Enter valid OAuth credentials without whitespace.');
+          values[field] = input[field];
+        }
+      }
+      if (values.refreshToken && (!values.clientId || provider !== 'google' || settings.authMode !== 'accessToken')) throw new Error('Google token refresh requires OAuth mode and its client ID.');
+      const secrets = encrypt(values);
       await run(`INSERT INTO deadline_integrations (provider, settings, secrets) VALUES (?, ?, ?)
         ON CONFLICT(provider) DO UPDATE SET settings = excluded.settings, secrets = excluded.secrets, lastSyncedAt = NULL`,
       [provider, JSON.stringify(settings), secrets]);
@@ -84,6 +97,10 @@ function createIntegrationService(databasePath, fetchProvider = fetchDeadlines) 
       if (!connection) throw new Error('Save this connection before syncing.');
       let secrets;
       try { secrets = decrypt(connection.secrets); } catch { throw new Error('Could not unlock the saved credential. Enter it again in Connections.'); }
+      if (provider === 'google' && secrets.refreshToken) {
+        secrets = await refreshToken(secrets);
+        await run('UPDATE deadline_integrations SET secrets = ? WHERE provider = ?', [encrypt(secrets), provider]);
+      }
       const deadlines = await fetchProvider(provider, JSON.parse(connection.settings), secrets);
       const timestamp = new Date().toISOString();
       await run('BEGIN IMMEDIATE');
@@ -120,7 +137,8 @@ function createIntegrationService(databasePath, fetchProvider = fetchDeadlines) 
 
 function registerDeadlineIntegrations(app, databasePath) {
   let service;
-  app.use('/api/integrations/deadlines', (req, res, next) => {
+  const lastAttempt = new Map();
+  app.use('/api/integrations/deadlines', localOnly, (req, res, next) => {
     res.set('Cache-Control', 'no-store');
     const remote = req.socket.remoteAddress;
     const origin = req.get('Origin');
@@ -148,6 +166,17 @@ function registerDeadlineIntegrations(app, databasePath) {
   app.put('/api/integrations/deadlines/:provider', route((req) => service.save(req.params.provider, req.body || {})));
   app.post('/api/integrations/deadlines/:provider/sync', route((req) => service.sync(req.params.provider)));
   app.delete('/api/integrations/deadlines/:provider', route((req) => service.disconnect(req.params.provider)));
+  return async () => {
+    service ||= createIntegrationService(databasePath);
+    for (const connection of await service.status()) {
+      if (!connection.configured || !connection.settings.autoSync) continue;
+      const lastRun = Math.max(Date.parse(connection.lastSyncedAt || '') || 0, lastAttempt.get(connection.provider) || 0);
+      if (Date.now() - lastRun < 900000) continue;
+      lastAttempt.set(connection.provider, Date.now());
+      try { await service.sync(connection.provider); }
+      catch { console.warn(`Scheduled ${connection.provider} sync failed. Retry from Connections to inspect the error.`); }
+    }
+  };
 }
 
 module.exports = { createIntegrationService, registerDeadlineIntegrations };

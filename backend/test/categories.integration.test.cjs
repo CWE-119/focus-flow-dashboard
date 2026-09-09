@@ -263,6 +263,28 @@ test('keeps connection credentials private and validates integration access', as
   assert.match(unconfigured.body.error, /Save this connection/);
 });
 
+test('serves workspace, recall, and backup routes through the running backend', async () => {
+  const workspace = await request('/workspaces', { method: 'POST', body: JSON.stringify({ name: 'Research methods', kind: 'research', description: 'A course project' }) });
+  assert.equal(workspace.response.statusCode, 200);
+  const workspaces = await request('/workspaces');
+  assert.ok(workspaces.body.some((entry) => entry.id === workspace.body.id));
+  const card = await request('/study/cards', { method: 'POST', body: JSON.stringify({ workspaceId: workspace.body.id, question: 'What is reproducibility?', answer: 'The ability to repeat a result.' }) });
+  assert.equal(card.response.statusCode, 200);
+  const review = await request(`/study/cards/${card.body.id}/review`, { method: 'POST', body: JSON.stringify({ revision: card.body.revision, grade: 'good' }) });
+  assert.equal(review.response.statusCode, 200);
+  assert.equal(review.body.interval, 1);
+  const backup = await request('/continuity/backup', { method: 'POST', body: '{}' });
+  assert.equal(backup.response.statusCode, 200);
+  const preview = await request('/continuity/preview', { method: 'POST', body: JSON.stringify({ name: backup.body.name }) });
+  assert.equal(preview.response.statusCode, 200);
+  assert.equal(preview.body.counts.flashcards, 1);
+  assert.equal(preview.body.counts.card_reviews, 1);
+  const prohibited = await request('/continuity', { headers: { Origin: 'https://untrusted.example' } });
+  assert.equal(prohibited.response.statusCode, 403);
+  const sandboxedPage = await request('/continuity', { headers: { Origin: 'null' } });
+  assert.equal(sandboxedPage.response.statusCode, 403);
+});
+
 test('persists deadlines and glossary terms for dashboard features', async () => {
   const invalidDeadline = await request('/deadlines', {
     method: 'POST',

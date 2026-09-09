@@ -10,7 +10,8 @@ function onUpdate(channel, listener) {
 contextBridge.exposeInMainWorld('electron', {
   // Get API URL from main process
   getApiUrl: () => ipcRenderer.invoke('get-api-url'),
-  
+  getLocalApiToken: () => ipcRenderer.invoke('get-local-api-token'),
+
   // Get app version
   getVersion: () => ipcRenderer.invoke('get-version'),
   

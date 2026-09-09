@@ -80,6 +80,14 @@ const NotesContent = () => {
   const [commandQuery, setCommandQuery] = useState("");
   
   const selectedNote = getSelectedNote();
+  const requestedNoteOpened = useRef(false);
+  useEffect(() => {
+    if (requestedNoteOpened.current || !allNotes.length) return;
+    const query = window.location.protocol === 'file:' ? window.location.hash.split('?')[1] : window.location.search;
+    const requested = new URLSearchParams(query).get('note');
+    const note = allNotes.find((item) => getNoteId(item) === requested);
+    if (note) { requestedNoteOpened.current = true; selectFolder(getNoteFolderId(note) || null); selectNote(requested); }
+  }, [allNotes, selectFolder, selectNote]);
   const commandNotes = useMemo(() => {
     const q = commandQuery.trim().toLowerCase();
     const source = q
@@ -337,6 +345,7 @@ const NotesContent = () => {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Tools</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate("/study")}>Study & research</DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/canvas")}>
               <PenTool className="w-4 h-4 mr-2" />
               Canvas

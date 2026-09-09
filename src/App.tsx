@@ -17,6 +17,7 @@ const queryClient = new QueryClient();
 const Notes = lazy(() => import("./pages/Notes"));
 const Canvas = lazy(() => import("./pages/Canvas"));
 const Help = lazy(() => import("./pages/Help"));
+const Study = lazy(() => import("./pages/Study"));
 const ShowcaseHub = lazy(() => import("./pages/showcase/ShowcaseHub"));
 const FocusShowcase = lazy(() => import("./pages/showcase/FocusShowcase"));
 const NotesShowcase = lazy(() => import("./pages/showcase/NotesShowcase"));
@@ -45,6 +46,7 @@ const App = () => (
                     <Route path="/notes" element={<Notes />} />
                     <Route path="/canvas" element={<Canvas />} />
                     <Route path="/help" element={<Help />} />
+                    <Route path="/study" element={<Study />} />
                     <Route path="/showcase" element={<ShowcaseHub />} />
                     <Route path="/showcase/focus" element={<FocusShowcase />} />
                     <Route path="/showcase/notes" element={<NotesShowcase />} />

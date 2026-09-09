@@ -28,9 +28,11 @@ calendar's ID. Obtain a token with scope
 `https://www.googleapis.com/auth/calendar.events.readonly`. For an initial manual
 setup, Google's [OAuth Playground](https://developers.google.com/oauthplayground/)
 lets you enter that scope, authorize your account, exchange the authorization
-code, and copy the access token into FocusFlow. Access tokens expire; replace the
-token here when necessary. Automatic OAuth sign-in and token refresh are not
-implemented in this version.
+code, and copy the access token into FocusFlow. For automatic refresh, use your
+own OAuth client in Playground and add its client ID, client secret, and offline
+refresh token under **Automatic Google token refresh** in Connections. Access
+tokens without a refresh token still need manual replacement. This does not add
+a built-in Google sign-in flow; setup is described in the [study and sync guide](study-and-sync.md).
 
 For a **public calendar**, enable Google Calendar API in your Google Cloud
 project, choose API key, and enter that key and a calendar ID from Google Calendar
@@ -46,7 +48,8 @@ of the event, correcting Google's exclusive end date. See the
 
 ## Sync and storage
 
-- Sync is manual and reads the past 30 days through the next 365 days.
+- Sync reads the past 30 days through the next 365 days. Manual sync is always
+  available; the optional automatic setting runs every 15 minutes while the backend runs.
 - All pages must succeed before any saved dates change. Network, authorization,
   malformed response, or rate-limit failures keep the previous list intact.
 - Provider IDs prevent duplicate imports and allow changed titles and dates to

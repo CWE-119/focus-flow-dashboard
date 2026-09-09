@@ -6,11 +6,13 @@ const cors = require('cors');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const { registerDeadlineIntegrations } = require('./deadline-integrations.cjs');
+const { createStudyService, registerStudy } = require('./study.cjs');
+const { createContinuityService, registerContinuity } = require('./continuity.cjs');
 const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use((req, res, next) => req.path.startsWith('/api/continuity') ? next() : express.json()(req, res, next));
 
 let server;
 
@@ -616,7 +618,7 @@ function parseDeadlinePayload(req, res, partial = false) {
   return result;
 }
 
-registerDeadlineIntegrations(app, dbPath);
+const deadlineMaintenance = registerDeadlineIntegrations(app, dbPath);
 
 app.get('/api/deadlines', (_req, res) => {
   db.all('SELECT * FROM deadlines ORDER BY datetime(end) ASC, title COLLATE NOCASE ASC', (err, rows) => {
@@ -1531,7 +1533,7 @@ app.get('/api/history', (req, res) => {
 
 app.get('/api/history/activity', (req, res) => {
   const sql = `
-    SELECT date, startTime, endTime, duration, action
+    SELECT id, date, startTime, endTime, duration, action
     FROM history
     WHERE action IN ('focus_session', 'note_session') AND date IS NOT NULL
     ORDER BY date DESC, createdAt DESC
@@ -1544,6 +1546,7 @@ app.get('/api/history/activity', (req, res) => {
     }
 
     res.json((rows || []).map((row) => ({
+      id: row.id,
       date: row.date,
       start: row.startTime || '00:00',
       end: row.endTime || '00:00',
@@ -1886,7 +1889,24 @@ app.delete('/api/drawings/:id', (req, res) => {
 
 const configuredPort = process.env.PORT;
 const PORT = configuredPort && /^\d+$/.test(configuredPort) ? Number(configuredPort) : (configuredPort || 5000);
-function startServer() {
+async function startServer() {
+  const study = createStudyService(dbPath);
+  try { await study.ready; } catch (error) { console.error('Study schema initialization failed:', error.message); process.exit(1); }
+  const continuity = createContinuityService(dbPath);
+  registerStudy(app, study);
+  registerContinuity(app, continuity);
+  let maintenanceRunning = false;
+  const maintain = async () => {
+    if (maintenanceRunning) return;
+    maintenanceRunning = true;
+    try { await continuity.tick(); await deadlineMaintenance(); }
+    catch (error) { console.error('Scheduled maintenance failed:', error.message); }
+    finally { maintenanceRunning = false; }
+  };
+  if (process.env.FOCUSFLOW_DISABLE_MAINTENANCE !== '1') {
+    setInterval(maintain, 60000).unref();
+    void maintain();
+  }
   server = app.listen(PORT, () => {
     console.log(`✓ Server running on http://localhost:${PORT}`);
   });

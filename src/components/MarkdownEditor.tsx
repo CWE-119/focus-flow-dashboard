@@ -75,6 +75,7 @@ import { cn } from "@/lib/utils";
 import { useDebounceWithStatus } from "@/hooks/use-debounce";
 import { PaperBackground, PatternPreview, paperPatterns, type PaperPattern, getPatternStyle } from "@/components/ui/paper-background";
 import NoteTimer from "@/components/NoteTimer";
+import { FlashcardComposer, type CardDraft } from "@/components/FlashcardComposer";
 import { LatexTemplates } from "@/components/editor/LatexTemplates";
 import { CodeBlock, InlineCode } from "@/components/editor/CodeBlock";
 import { SaveIndicator } from "@/components/editor/SaveIndicator";
@@ -212,6 +213,7 @@ const MarkdownEditor = ({
   const [tagDraft, setTagDraft] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const titleChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSentToBackendRef = useRef<string>(content || "");
@@ -547,6 +549,12 @@ const MarkdownEditor = ({
       {/* Timer and Title Row */}
       <div className="mb-4 flex items-center gap-4">
         <NoteTimer noteTitle={title} />
+        <Button variant="outline" size="sm" onMouseDown={(event) => event.preventDefault()} onClick={() => {
+          const textarea = textareaRef.current;
+          const selected = textarea && !isPreview ? localContent.slice(textarea.selectionStart, textarea.selectionEnd) : window.getSelection()?.toString() || '';
+          setCardDraft({ question: `What do you remember about ${title}?`, answer: selected.trim().slice(0, 12000), noteId });
+        }}>Create recall card</Button>
+        {cardDraft && <FlashcardComposer draft={cardDraft} onClose={() => setCardDraft(null)} />}
         <div className="h-6 w-px bg-border" />
         {isEditingTitle ? (
           <div className="flex items-center gap-2 flex-1">

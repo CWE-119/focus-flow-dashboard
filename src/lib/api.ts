@@ -23,6 +23,14 @@ interface ApiResponse<T> {
   success: boolean;
 }
 
+let desktopToken: Promise<string> | undefined;
+export async function desktopApiHeaders(): Promise<Record<string, string>> {
+  const bridge = (window as Window & { electron?: { getLocalApiToken?: () => Promise<string> } }).electron;
+  if (!bridge?.getLocalApiToken) return {};
+  desktopToken ||= bridge.getLocalApiToken();
+  return { 'X-FocusFlow-Desktop-Token': await desktopToken };
+}
+
 // Generic fetch wrapper with error handling
 const fetchAPI = async <T>(
   endpoint: string,
@@ -32,6 +40,7 @@ const fetchAPI = async <T>(
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
+        ...await desktopApiHeaders(),
         ...options.headers,
       },
       ...options,
@@ -198,13 +207,14 @@ export type DeadlineProvider = 'canvas' | 'google';
 export interface DeadlineConnection {
   provider: DeadlineProvider;
   configured: boolean;
-  settings: { baseUrl?: string; calendarId?: string; authMode?: 'apiKey' | 'accessToken' };
+  settings: { baseUrl?: string; calendarId?: string; authMode?: 'apiKey' | 'accessToken'; autoSync?: boolean };
+  hasRefreshToken?: boolean;
   lastSyncedAt: string | null;
 }
 
 export const deadlineIntegrationsAPI = {
   getAll: () => fetchAPI<DeadlineConnection[]>('/integrations/deadlines'),
-  save: (provider: DeadlineProvider, settings: DeadlineConnection['settings'] & { credential?: string }) =>
+  save: (provider: DeadlineProvider, settings: DeadlineConnection['settings'] & { credential?: string; refreshToken?: string; clientId?: string; clientSecret?: string }) =>
     fetchAPI<DeadlineConnection[]>(`/integrations/deadlines/${provider}`, { method: 'PUT', body: JSON.stringify(settings) }),
   sync: (provider: DeadlineProvider) =>
     fetchAPI<{ count: number; lastSyncedAt: string }>(`/integrations/deadlines/${provider}/sync`, { method: 'POST', body: '{}' }),

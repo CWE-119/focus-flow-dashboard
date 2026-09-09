@@ -3,9 +3,17 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
+const { randomBytes } = require('node:crypto');
 
 const PORT = 3000;
 const API_PORT = 5000;
+const localApiToken = randomBytes(32).toString('hex');
+process.env.FOCUSFLOW_LOCAL_TOKEN = localApiToken;
+ipcMain.handle('get-local-api-token', (event) => {
+  const url = event.senderFrame?.url || '';
+  if (event.sender !== mainWindow?.webContents || (!url.startsWith('file://') && !url.startsWith('http://localhost:3000/'))) throw new Error('Untrusted renderer');
+  return localApiToken;
+});
 
 // Detect if running in development mode
 let isDev = true;
